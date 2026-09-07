@@ -36,6 +36,16 @@
     return `${value.toFixed(1)} ${units[unitIndex]}`;
   }
 
+  function workflowStepForStatus(status) {
+    return {
+      IDLE: "folder",
+      ANALYZING: "analysis",
+      READY_FOR_REVIEW: "review",
+      PROCESSING: "export",
+      DONE: "export",
+    }[status] || "folder";
+  }
+
   /**
    * Carte photo (vignette en chargement paresseux + case a cocher) partagee par les
    * onglets Flou et Doublons. Ne s'utilise que dans un navigateur (acces au DOM).
@@ -100,5 +110,5 @@
     }
   }
 
-  return { debounce, buildPaginatedUrl, formatBytes, createPhotoCard };
+  return { debounce, buildPaginatedUrl, formatBytes, workflowStepForStatus, createPhotoCard };
 });

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dedoublonneur - Nettoyer un dossier photo</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body data-workflow-shell="true">
+  <header class="app-header app-header--hero">
+    <div>
+      <p class="eyebrow">DEDoublonneur</p>
+      <h1>Nettoyer un dossier photo</h1>
+      <p class="app-header__hint">Analysez, verifiez puis exportez une copie propre de votre evenement. Le dossier source reste intact.</p>
+    </div>
+    <div id="workflow-context" class="workflow-context" hidden></div>
+  </header>
+
+  <main class="workflow-shell">
+    <nav class="workflow-stepper" aria-label="Progression du workflow">
+      <button class="workflow-step" type="button" data-step="folder">1. Dossier</button>
+      <button class="workflow-step" type="button" data-step="analysis">2. Analyse</button>
+      <button class="workflow-step" type="button" data-step="review">3. Revue</button>
+      <button class="workflow-step" type="button" data-step="export">4. Export</button>
+    </nav>
+
+    <p id="workflow-status" class="status-message" role="status" aria-live="polite"></p>
+
+    <section class="workflow-panel" data-panel="folder" aria-labelledby="folder-title">
+      <div class="panel-heading">
+        <p class="eyebrow">Etape 1</p>
+        <h2 id="folder-title">Choisir un dossier evenement</h2>
+        <p>Selectionnez un dossier source. L'analyse prendra un instantane des photos presentes au demarrage.</p>
+      </div>
+      <div id="event-folders" class="folder-list" aria-live="polite"></div>
+      <button id="start-analysis" class="primary-action" type="button" disabled>Lancer l'analyse</button>
+    </section>
+
+    <section class="workflow-panel" data-panel="analysis" aria-labelledby="analysis-title" hidden>
+      <div class="panel-heading">
+        <p class="eyebrow">Etape 2</p>
+        <h2 id="analysis-title">Analyse de <span data-current-folder></span></h2>
+        <p>Les photos sont examinees pour detecter le flou et les groupes de doublons.</p>
+      </div>
+      <div class="analysis-progress" aria-live="polite">
+        <div class="progress-bar"><div id="analysis-progress-fill" class="progress-bar__fill"></div></div>
+        <p id="analysis-progress-label">En attente de progression...</p>
+      </div>
+      <button id="resume-analysis" class="secondary-action" type="button" hidden>Reprendre l'analyse</button>
+    </section>
+
+    <section class="workflow-panel" data-panel="review" aria-labelledby="review-title" hidden>
+      <div class="panel-heading">
+        <p class="eyebrow">Etape 3</p>
+        <h2 id="review-title">Verifier les photos de <span data-current-folder></span></h2>
+        <p>Chaque choix est memorise. Vous pouvez conserver une photo detectee comme floue ou modifier le meilleur choix d'un groupe.</p>
+      </div>
+      <div class="review-tabs" role="tablist" aria-label="Types de revue">
+        <button class="review-tab" type="button" role="tab" aria-selected="true" data-review-tab="blur">Flou</button>
+        <button class="review-tab" type="button" role="tab" aria-selected="false" data-review-tab="duplicate">Doublons</button>
+      </div>
+      <div class="review-panel" data-review-panel="blur" role="tabpanel">
+        <section id="blurred-grid" class="photo-grid" aria-live="polite"></section>
+        <nav class="pagination">
+          <button id="prev-page" type="button">&larr; Precedent</button>
+          <span id="page-indicator"></span>
+          <button id="next-page" type="button">Suivant &rarr;</button>
+        </nav>
+      </div>
+      <div class="review-panel" data-review-panel="duplicate" role="tabpanel" hidden>
+        <div class="threshold-control">
+          <label for="threshold">Seuil de similarite : <span id="threshold-value">90</span>%</label>
+          <input id="threshold" type="range" min="0" max="100" value="90" />
+        </div>
+        <section id="duplicate-groups" aria-live="polite"></section>
+      </div>
+      <button id="open-export" class="primary-action" type="button">Continuer vers l'export</button>
+    </section>
+
+    <section class="workflow-panel" data-panel="export" aria-labelledby="export-title" hidden>
+      <div class="panel-heading">
+        <p class="eyebrow">Etape 4</p>
+        <h2 id="export-title">Exporter <span data-current-folder></span></h2>
+        <p>Les photos conservees et toutes les videos seront copiees vers un nouveau dossier. Le dossier source ne sera jamais modifie.</p>
+      </div>
+      <form id="process-form">
+        <label for="output-folder-name">Nom du dossier de sortie</label>
+        <input id="output-folder-name" type="text" required placeholder="ex: vacances-ete-2026-triees" />
+        <button id="process-button" class="primary-action" type="submit">Lancer le traitement</button>
+      </form>
+      <p id="status-message" class="status-message" role="status"></p>
+      <div id="progress-bar" class="progress-bar" hidden><div class="progress-bar__fill"></div></div>
+      <section id="recap" class="recap" hidden>
+        <h3>Recapitulatif</h3>
+        <dl>
+          <dt>Photos conservees</dt><dd id="recap-kept"></dd>
+          <dt>Photos supprimees</dt><dd id="recap-deleted"></dd>
+          <dt>Videos copiees</dt><dd id="recap-videos"></dd>
+          <dt>Espace disque avant</dt><dd id="recap-space-before"></dd>
+          <dt>Espace disque apres</dt><dd id="recap-space-after"></dd>
+        </dl>
+      </section>
+      <button id="new-workflow" class="secondary-action" type="button" hidden>Nouveau dossier</button>
+    </section>
+  </main>
+
+  <script src="/js/shared.js"></script>
+  <script src="/js/blur-review.js"></script>
+  <script src="/js/duplicate-review.js"></script>
+  <script src="/js/folder-processing.js"></script>
+  <script src="/js/workflow.js"></script>
+</body>
+</html>

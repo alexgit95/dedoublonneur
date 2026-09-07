@@ -1,17 +1,14 @@
 // Action "Traiter le dossier" : demarre la copie, attend la fin par polling, affiche le recap.
 // Utilise le module partage shared.js (formatBytes) - cf. responsive-ui.
-(() => {
+function initFolderProcessing(jobId, root = document) {
   const POLL_INTERVAL_MS = 2000;
 
-  const params = new URLSearchParams(window.location.search);
-  const jobId = params.get("jobId");
-
-  const form = document.getElementById("process-form");
-  const outputFolderInput = document.getElementById("output-folder-name");
-  const processButton = document.getElementById("process-button");
-  const statusMessage = document.getElementById("status-message");
-  const recapSection = document.getElementById("recap");
-  const progressBar = document.getElementById("progress-bar");
+  const form = root.querySelector("#process-form");
+  const outputFolderInput = root.querySelector("#output-folder-name");
+  const processButton = root.querySelector("#process-button");
+  const statusMessage = root.querySelector("#status-message");
+  const recapSection = root.querySelector("#recap");
+  const progressBar = root.querySelector("#progress-bar");
 
   async function startProcessing(outputFolderName) {
     const response = await fetch(`/api/jobs/${jobId}/process`, {
@@ -42,11 +39,11 @@
       throw new Error("Recapitulatif indisponible.");
     }
     const recap = await response.json();
-    document.getElementById("recap-kept").textContent = recap.keptCount;
-    document.getElementById("recap-deleted").textContent = recap.deletedCount;
-    document.getElementById("recap-videos").textContent = recap.videoCount;
-    document.getElementById("recap-space-before").textContent = DedoublonneurUI.formatBytes(recap.spaceBeforeBytes);
-    document.getElementById("recap-space-after").textContent = DedoublonneurUI.formatBytes(recap.spaceAfterBytes);
+    root.querySelector("#recap-kept").textContent = recap.keptCount;
+    root.querySelector("#recap-deleted").textContent = recap.deletedCount;
+    root.querySelector("#recap-videos").textContent = recap.videoCount;
+    root.querySelector("#recap-space-before").textContent = DedoublonneurUI.formatBytes(recap.spaceBeforeBytes);
+    root.querySelector("#recap-space-after").textContent = DedoublonneurUI.formatBytes(recap.spaceAfterBytes);
     recapSection.hidden = false;
   }
 
@@ -61,7 +58,9 @@
     progressBar.hidden = false;
     try {
       await startProcessing(outputFolderInput.value.trim());
+      window.dispatchEvent(new CustomEvent("workflow-processing-started"));
       await pollUntilDone();
+      window.dispatchEvent(new CustomEvent("workflow-processing-done"));
       statusMessage.textContent = "Traitement termine.";
       await loadRecap();
     } catch (error) {
@@ -71,4 +70,14 @@
       progressBar.hidden = true;
     }
   });
-})();
+
+  return { loadRecap };
+}
+
+window.DedoublonneurPanels = window.DedoublonneurPanels || {};
+window.DedoublonneurPanels.initFolderProcessing = initFolderProcessing;
+
+if (!document.body.dataset.workflowShell) {
+  const params = new URLSearchParams(window.location.search);
+  initFolderProcessing(params.get("jobId"));
+}

@@ -44,7 +44,10 @@ public class WorkflowStateService {
 
     @Transactional(readOnly = true)
     public WorkflowStatus currentStatus() {
-        return findActiveJob().map(WorkflowStatus::of).orElseGet(WorkflowStatus::idle);
+        return findActiveJob()
+                .map(WorkflowStatus::of)
+                .or(() -> jobRepository.findFirstByStatusOrderByIdDesc(JobStatus.DONE).map(WorkflowStatus::of))
+                .orElseGet(WorkflowStatus::idle);
     }
 
     /**

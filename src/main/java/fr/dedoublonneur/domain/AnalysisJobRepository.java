@@ -20,6 +20,9 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
     @Transactional(readOnly = true)
     Optional<AnalysisJob> findFirstByStatusIn(List<JobStatus> statuses);
 
+    @Transactional(readOnly = true)
+    Optional<AnalysisJob> findFirstByStatusOrderByIdDesc(JobStatus status);
+
     /**
      * Recupere le chemin du dossier evenement sans charger l'association paresseuse
      * {@code event}, evitant tout risque de LazyInitializationException hors session

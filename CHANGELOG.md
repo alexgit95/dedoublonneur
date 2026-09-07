@@ -7,6 +7,7 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Interface de workflow guidee** (`improve-guided-workflow-ui`) : landing page a la racine, fil d'etapes persistant, ecran unique avec onglets Flou/Doublons, reprise automatique selon le statut du workflow et recapitulatif d'export integre.
 - **Workflow complet de tri de photos** (`add-photo-culling-workflow`) : selection d'un dossier evenement, analyse en tache de fond (flou + doublons), revue manuelle (onglets Flou/Doublons), puis traitement (copie vers un dossier de sortie avec preservation des metadonnees et recapitulatif). Detail des sous-fonctionnalites ci-dessous.
 - Initialisation du projet Maven/Spring Boot 4 (`pom.xml`, wrapper Maven `mvnw`/`mvnw.cmd`) avec les dependances necessaires au workflow de tri de photos : `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `springdoc-openapi-starter-webmvc-ui`, pilotes SQLite (profil `local`) et PostgreSQL (profil `docker`), TwelveMonkeys ImageIO (decodage JPEG) et metadata-extractor (lecture EXIF).
 - Configuration Spring par profils : `application.yml` (base), `application-local.yml` (SQLite, sans dependance Docker), `application-docker.yml` (PostgreSQL).
@@ -25,4 +26,5 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - Documentation fonctionnelle du workflow dans `README.md`, `docker-compose.yml` pret a l'emploi (app + PostgreSQL, montage NAS, volume de donnees) et guide de deploiement pas-a-pas sur Arcane.
 
 ### Changed
+- `WorkflowStateService` : le dernier workflow termine reste visible avec son contexte `DONE`, afin que l'interface puisse afficher le recapitulatif et proposer un nouveau dossier.
 - `Dockerfile` : ajout d'options JVM sobres pour Raspberry Pi 4 (`-XX:+UseSerialGC`, `-Xmx384m`, `-XX:MaxMetaspaceSize=128m`).

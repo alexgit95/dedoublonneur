@@ -46,11 +46,21 @@ function testFormatBytes() {
   assert.strictEqual(DedoublonneurUI.formatBytes(2048), "2.0 Ko");
 }
 
+function testWorkflowStepMapping() {
+  assert.strictEqual(DedoublonneurUI.workflowStepForStatus("IDLE"), "folder");
+  assert.strictEqual(DedoublonneurUI.workflowStepForStatus("ANALYZING"), "analysis");
+  assert.strictEqual(DedoublonneurUI.workflowStepForStatus("READY_FOR_REVIEW"), "review");
+  assert.strictEqual(DedoublonneurUI.workflowStepForStatus("PROCESSING"), "export");
+  assert.strictEqual(DedoublonneurUI.workflowStepForStatus("DONE"), "export");
+  assert.strictEqual(DedoublonneurUI.workflowStepForStatus("UNKNOWN"), "folder");
+}
+
 async function main() {
   await testDebounceDelaysRecomputation();
   testBuildPaginatedUrlRequestsOnlyOnePageAtATime();
   testBuildPaginatedUrlHandlesExistingQueryString();
   testFormatBytes();
+  testWorkflowStepMapping();
   console.log("shared.test.js: all assertions passed");
 }
 

@@ -1,14 +1,11 @@
 // Onglet "Doublons" : groupes recalcules a la demande selon le seuil de similarite.
 // Utilise le module partage shared.js (debounce/carte photo) - cf. responsive-ui.
-(() => {
+function initDuplicateReview(jobId, root = document) {
   const DEBOUNCE_MS = 300;
 
-  const params = new URLSearchParams(window.location.search);
-  const jobId = params.get("jobId");
-
-  const container = document.getElementById("duplicate-groups");
-  const slider = document.getElementById("threshold");
-  const thresholdValue = document.getElementById("threshold-value");
+  const container = root.querySelector("#duplicate-groups");
+  const slider = root.querySelector("#threshold");
+  const thresholdValue = root.querySelector("#threshold-value");
 
   async function loadGroups(threshold) {
     if (!jobId) {
@@ -58,4 +55,13 @@
   });
 
   loadGroups(slider.value);
-})();
+  return { reload: () => loadGroups(slider.value) };
+}
+
+window.DedoublonneurPanels = window.DedoublonneurPanels || {};
+window.DedoublonneurPanels.initDuplicateReview = initDuplicateReview;
+
+if (!document.body.dataset.workflowShell) {
+  const params = new URLSearchParams(window.location.search);
+  initDuplicateReview(params.get("jobId"));
+}

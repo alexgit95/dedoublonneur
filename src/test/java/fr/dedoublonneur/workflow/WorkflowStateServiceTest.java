@@ -51,8 +51,40 @@ class WorkflowStateServiceTest {
         AnalysisJob job = workflowStateService.startAnalysis("vacances-ete-2026");
 
         assertThat(job.getStatus()).isEqualTo(JobStatus.ANALYZING);
-        assertThat(workflowStateService.currentStatus().status()).isEqualTo(JobStatus.ANALYZING.name());
-        assertThat(workflowStateService.currentStatus().eventFolderName()).isEqualTo("vacances-ete-2026");
+        WorkflowStatus status = workflowStateService.currentStatus();
+        assertThat(status.status()).isEqualTo(JobStatus.ANALYZING.name());
+        assertThat(status.jobId()).isEqualTo(job.getId());
+        assertThat(status.eventFolderName()).isEqualTo("vacances-ete-2026");
+    }
+
+    @Test
+    void currentStatusPreservesActiveReviewAndProcessingContext() {
+        AnalysisJob job = workflowStateService.startAnalysis("vacances-ete-2026");
+
+        job.setStatus(JobStatus.READY_FOR_REVIEW);
+        jobRepository.saveAndFlush(job);
+        assertThat(workflowStateService.currentStatus())
+                .extracting(WorkflowStatus::status, WorkflowStatus::jobId, WorkflowStatus::eventFolderName)
+                .containsExactly(JobStatus.READY_FOR_REVIEW.name(), job.getId(), "vacances-ete-2026");
+
+        job.setStatus(JobStatus.PROCESSING);
+        jobRepository.saveAndFlush(job);
+        assertThat(workflowStateService.currentStatus())
+                .extracting(WorkflowStatus::status, WorkflowStatus::jobId, WorkflowStatus::eventFolderName)
+                .containsExactly(JobStatus.PROCESSING.name(), job.getId(), "vacances-ete-2026");
+    }
+
+    @Test
+    void currentStatusPreservesLatestCompletedWorkflowContext() {
+        AnalysisJob job = workflowStateService.startAnalysis("vacances-ete-2026");
+        job.setStatus(JobStatus.DONE);
+        jobRepository.saveAndFlush(job);
+
+        WorkflowStatus status = workflowStateService.currentStatus();
+
+        assertThat(status.status()).isEqualTo(JobStatus.DONE.name());
+        assertThat(status.jobId()).isEqualTo(job.getId());
+        assertThat(status.eventFolderName()).isEqualTo("vacances-ete-2026");
     }
 
     @Test

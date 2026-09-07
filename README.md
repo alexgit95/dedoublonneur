@@ -2,17 +2,23 @@
 
 Application de tri de photos avant archivage : detection des photos floues et des doublons/quasi-doublons au sein d'un dossier evenement, avec revue manuelle avant copie vers un dossier de sortie (metadonnees EXIF/GPS preservees).
 
+## Interface utilisateur
+
+Ouvrez `http://localhost:8686/` (ou l'URL de l'instance distante) pour acceder a l'ecran d'accueil. Cette page unique guide le workflow avec un fil d'etapes : selection du dossier, analyse, revue et export. Les onglets **Flou** et **Doublons** sont regroupes dans l'etape de revue.
+
+L'application reprend automatiquement le workflow courant a partir de `GET /api/workflow/status`. Une analyse en cours affiche sa progression, un dossier pret ouvre la revue, et un traitement termine affiche son recapitulatif. Les anciennes URLs `/flou.html?jobId=...`, `/doublons.html?jobId=...` et `/traiter.html?jobId=...` restent disponibles comme acces directs de compatibilite.
+
 ## Fonctionnement (workflow)
 
 L'application traite un seul dossier evenement a la fois, en 4 etapes :
 
 1. **Selection du dossier evenement** — `GET /api/events` liste les sous-dossiers presents sous le point de montage NAS source. `POST /api/events/{folderName}/analysis` demarre l'analyse. Un seul workflow (analyse, revue ou traitement) peut etre actif a la fois ; une tentative concurrente est refusee (HTTP 409). `GET /api/workflow/status` renvoie l'etat courant (`IDLE`, `ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`, `DONE`) et `POST /api/workflow/cancel` permet de reinitialiser un workflow bloque.
 2. **Analyse en tache de fond** — pour chaque photo JPEG du dossier (instantane fige au demarrage, les fichiers ajoutes ensuite sont ignores) : calcul d'un score de nettete (variance du Laplacien) et d'un hash perceptuel (average-hash 64 bits), avec une vignette generee et mise en cache. La progression est consultable via `GET /api/jobs/{id}` et peut reprendre manuellement (`POST /api/jobs/{id}/resume`) sans recalculer les photos deja traitees.
-3. **Revue manuelle** — deux onglets IHM (`/flou.html?jobId=...` et `/doublons.html?jobId=...`) :
+3. **Revue manuelle** — deux onglets IHM regroupes dans l'ecran racine (`/`) :
    - **Flou** (`GET /api/jobs/{id}/blurred`, pagine) : les photos sous le seuil de nettete sont pre-cochees pour suppression.
    - **Doublons** (`GET /api/jobs/{id}/duplicates?threshold=NN`) : les photos sont regroupees par similarite de hash, recalculee a la demande selon un seuil ajustable (0-100%) sans re-analyser les images. Dans chaque groupe, la photo la plus nette est conservee par defaut (egalite departagee par nom de fichier).
    - Dans les deux onglets, `PATCH /api/photos/{id}` permet de cocher/decocher une photo ; un choix manuel est toujours respecte, meme apres changement du seuil de similarite.
-4. **Traitement** (`/traiter.html?jobId=...`) — `POST /api/jobs/{id}/process` copie (octet a octet, metadonnees EXIF/GPS/dates preservees) toutes les photos conservees et toutes les videos du dossier vers un nouveau dossier de sortie (rejet si le nom existe deja) ; le dossier source n'est jamais modifie. `GET /api/jobs/{id}/result` renvoie le recapitulatif final (photos conservees/supprimees, videos copiees, espace disque avant/apres).
+4. **Traitement** (onglet Export de `/`) — `POST /api/jobs/{id}/process` copie (octet a octet, metadonnees EXIF/GPS/dates preservees) toutes les photos conservees et toutes les videos du dossier vers un nouveau dossier de sortie (rejet si le nom existe deja) ; le dossier source n'est jamais modifie. `GET /api/jobs/{id}/result` renvoie le recapitulatif final (photos conservees/supprimees, videos copiees, espace disque avant/apres).
 
 La documentation interactive des endpoints est disponible sur `/swagger-ui.html` une fois l'application demarree.
 
@@ -62,7 +68,7 @@ Dans le `docker-compose.yml` fourni a la racine du depot, l'image est referencee
 
 - Dans Arcane, les deux conteneurs (`dedoublonneur-app`, `dedoublonneur-postgres`) doivent passer au statut **healthy**.
 - Consultez les logs du conteneur `dedoublonneur-app` : vous devez voir Hibernate creer les tables (`create table event ...`, `create table analysis_job ...`, etc.) sans erreur.
-- Ouvrez `http://<ip-du-raspberry>:8686` dans un navigateur : l'IHM doit repondre (les pages `/flou.html`, `/doublons.html`, `/traiter.html` necessitent un `?jobId=` obtenu via l'API).
+- Ouvrez `http://<ip-du-raspberry>:8686/` dans un navigateur : la landing page permet de selectionner un dossier et de reprendre un workflow existant.
 - `http://<ip-du-raspberry>:8686/swagger-ui.html` doit afficher la documentation des endpoints.
 
 ### 4. Mettre a jour l'application apres un nouveau commit/push

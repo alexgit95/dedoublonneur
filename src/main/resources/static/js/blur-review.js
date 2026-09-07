@@ -1,15 +1,12 @@
 // Onglet "Flou" : liste paginee des photos floues, cochees par defaut pour suppression.
 // Utilise le module partage shared.js (debounce/pagination/carte photo) - cf. responsive-ui.
-(() => {
+function initBlurReview(jobId, root = document) {
   const PAGE_SIZE = 24;
 
-  const params = new URLSearchParams(window.location.search);
-  const jobId = params.get("jobId");
-
-  const grid = document.getElementById("blurred-grid");
-  const prevButton = document.getElementById("prev-page");
-  const nextButton = document.getElementById("next-page");
-  const pageIndicator = document.getElementById("page-indicator");
+  const grid = root.querySelector("#blurred-grid");
+  const prevButton = root.querySelector("#prev-page");
+  const nextButton = root.querySelector("#next-page");
+  const pageIndicator = root.querySelector("#page-indicator");
 
   let currentPage = 0;
   let totalPages = 0;
@@ -49,4 +46,13 @@
   nextButton.addEventListener("click", () => loadPage(currentPage + 1));
 
   loadPage(0);
-})();
+  return { reload: () => loadPage(currentPage) };
+}
+
+window.DedoublonneurPanels = window.DedoublonneurPanels || {};
+window.DedoublonneurPanels.initBlurReview = initBlurReview;
+
+if (!document.body.dataset.workflowShell) {
+  const params = new URLSearchParams(window.location.search);
+  initBlurReview(params.get("jobId"));
+}
