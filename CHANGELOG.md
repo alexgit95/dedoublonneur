@@ -16,6 +16,7 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - Listage des dossiers evenement disponibles sous le point de montage NAS source (`GET /api/events`).
 - Documentation Swagger/OpenAPI (`@Tag`, `@Operation`, `@ApiResponse`) sur les nouveaux endpoints `events` et `workflow`.
 - Job d'analyse en tache de fond (`photo-analysis`) : instantane fige des photos JPEG d'un dossier au demarrage (`AnalysisOrchestrator`), calcul par photo du score de nettete (variance du Laplacien) et d'un hash perceptuel average-hash 64 bits (`ImageAnalysisService`), traitement asynchrone avec checkpoint de progression tous les ~20 photos (`PhotoAnalysisRunner`), reprise manuelle sans recalcul des photos deja analysees (`POST /api/jobs/{id}/resume`), et suivi de progression par polling (`GET /api/jobs/{id}`).
+- Onglet "Flou" (`blur-review`) : listing pagine des photos floues (`GET /api/jobs/{id}/blurred`), pre-cochees pour suppression par defaut, bascule keep/delete par photo (`PATCH /api/photos/{id}`), et page IHM vanilla JS/HTML/CSS avec vignettes en chargement paresseux (`static/flou.html`).
 
 ### Changed
 - `Dockerfile` : ajout d'options JVM sobres pour Raspberry Pi 4 (`-XX:+UseSerialGC`, `-Xmx384m`, `-XX:MaxMetaspaceSize=128m`).

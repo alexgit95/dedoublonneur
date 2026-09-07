@@ -35,11 +35,11 @@
 
 ## 5. Blur review tab (blur-review)
 
-- [ ] 5.1 Implement `GET /api/jobs/{id}/blurred` paginated endpoint returning blurry photos (below blur threshold) with default `toDelete=true`
-- [ ] 5.2 Implement `PATCH` endpoint (or per-photo toggle endpoint) to flip a photo's keep/delete state
-- [ ] 5.3 Add Swagger/OpenAPI annotations
-- [ ] 5.4 Frontend: "Flou" tab UI (vanilla JS/HTML/CSS) with paginated, lazily-loaded (`loading="lazy"`) thumbnail grid and checkboxes pre-checked for deletion, using the shared UI utilities from section 9
-- [ ] 5.5 Unit tests: default pre-checked state, pagination, toggle persistence
+- [x] 5.1 Implement `GET /api/jobs/{id}/blurred` paginated endpoint returning blurry photos (below blur threshold) with default `toDelete=true`
+- [x] 5.2 Implement `PATCH` endpoint (or per-photo toggle endpoint) to flip a photo's keep/delete state
+- [x] 5.3 Add Swagger/OpenAPI annotations
+- [x] 5.4 Frontend: "Flou" tab UI (vanilla JS/HTML/CSS) with paginated, lazily-loaded (`loading="lazy"`) thumbnail grid and checkboxes pre-checked for deletion, using the shared UI utilities from section 9
+- [x] 5.5 Unit tests: default pre-checked state, pagination, toggle persistence
 
 ## 6. Duplicate review tab (duplicate-review)
 

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dedoublonneur - Photos floues</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Photos floues</h1>
+    <p class="app-header__hint">Decochez une photo pour la conserver malgre le flou detecte.</p>
+  </header>
+
+  <main>
+    <section id="blurred-grid" class="photo-grid" aria-live="polite"></section>
+
+    <nav class="pagination">
+      <button id="prev-page" type="button">&larr; Precedent</button>
+      <span id="page-indicator"></span>
+      <button id="next-page" type="button">Suivant &rarr;</button>
+    </nav>
+  </main>
+
+  <script src="/js/blur-review.js"></script>
+</body>
+</html>
