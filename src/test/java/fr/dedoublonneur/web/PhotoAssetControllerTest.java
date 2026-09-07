@@ -2,6 +2,8 @@ package fr.dedoublonneur.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +82,83 @@ class PhotoAssetControllerTest {
         assertThat(response.markedForDeletion()).isFalse();
         PhotoAsset reloaded = photoAssetRepository.findById(photo.getId()).orElseThrow();
         assertThat(reloaded.isMarkedForDeletion()).isFalse();
+    }
+
+    @Test
+    void identicalHashesAreGroupedAtHighThreshold() {
+        Event event = eventRepository.save(new Event("evenement-" + System.nanoTime(), "/tmp/evenement"));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 3, 90));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_1.jpg", 1000L, 50.0, 0x1234L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_2.jpg", 1000L, 30.0, 0x1234L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_3.jpg", 1000L, 10.0, 0x1234L, false));
+
+        List<DuplicateGroupResponse> groups = photoAssetController.getDuplicateGroups(job.getId(), 100);
+
+        assertThat(groups).hasSize(1);
+        assertThat(groups.get(0).photos()).hasSize(3);
+    }
+
+    @Test
+    void completelyDifferentHashesAreNotGroupedAtHighThreshold() {
+        Event event = eventRepository.save(new Event("evenement-" + System.nanoTime(), "/tmp/evenement"));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 2, 90));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_1.jpg", 1000L, 50.0, 0x0000000000000000L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_2.jpg", 1000L, 30.0, 0xFFFFFFFFFFFFFFFFL, false));
+
+        List<DuplicateGroupResponse> groups = photoAssetController.getDuplicateGroups(job.getId(), 100);
+
+        assertThat(groups).isEmpty();
+    }
+
+    @Test
+    void sharpestPhotoIsKeptByDefaultWithinAGroup() {
+        Event event = eventRepository.save(new Event("evenement-" + System.nanoTime(), "/tmp/evenement"));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 2, 90));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_blurry.jpg", 1000L, 10.0, 0x1234L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_sharp.jpg", 1000L, 200.0, 0x1234L, false));
+
+        List<DuplicateGroupResponse> groups = photoAssetController.getDuplicateGroups(job.getId(), 100);
+
+        assertThat(groups).hasSize(1);
+        PhotoAssetResponse sharp = findByPath(groups.get(0), "IMG_sharp.jpg");
+        PhotoAssetResponse blurry = findByPath(groups.get(0), "IMG_blurry.jpg");
+        assertThat(sharp.markedForDeletion()).isFalse();
+        assertThat(blurry.markedForDeletion()).isTrue();
+    }
+
+    @Test
+    void tieOnBlurScoreKeepsThePhotoThatSortsFirstByFilename() {
+        Event event = eventRepository.save(new Event("evenement-" + System.nanoTime(), "/tmp/evenement"));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 2, 90));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_B.jpg", 1000L, 100.0, 0x1234L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_A.jpg", 1000L, 100.0, 0x1234L, false));
+
+        List<DuplicateGroupResponse> groups = photoAssetController.getDuplicateGroups(job.getId(), 100);
+
+        assertThat(findByPath(groups.get(0), "IMG_A.jpg").markedForDeletion()).isFalse();
+        assertThat(findByPath(groups.get(0), "IMG_B.jpg").markedForDeletion()).isTrue();
+    }
+
+    @Test
+    void manualOverrideSurvivesThresholdRecomputation() {
+        Event event = eventRepository.save(new Event("evenement-" + System.nanoTime(), "/tmp/evenement"));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 2, 90));
+        PhotoAsset blurry = photoAssetRepository.save(new PhotoAsset(job, "IMG_blurry.jpg", 1000L, 10.0, 0x1234L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_sharp.jpg", 1000L, 200.0, 0x1234L, false));
+
+        // L'utilisateur decide explicitement de garder la photo floue malgre le defaut.
+        photoAssetController.toggleDeletion(blurry.getId(), new ToggleDeletionRequest(false));
+
+        List<DuplicateGroupResponse> groups = photoAssetController.getDuplicateGroups(job.getId(), 100);
+
+        assertThat(findByPath(groups.get(0), "IMG_blurry.jpg").markedForDeletion()).isFalse();
+    }
+
+    private static PhotoAssetResponse findByPath(DuplicateGroupResponse group, String relativePath) {
+        return group.photos().stream()
+                .filter(photo -> photo.relativePath().equals(relativePath))
+                .findFirst()
+                .orElseThrow();
     }
 
     private AnalysisJob createJobWithPhotos(int blurryCount) {

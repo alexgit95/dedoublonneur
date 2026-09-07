@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dedoublonneur - Traiter le dossier</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Traiter le dossier</h1>
+    <p class="app-header__hint">
+      Les photos conservees (non cochees dans les onglets Flou et Doublons) et toutes les videos
+      seront copiees vers le dossier de sortie. Le dossier source n'est jamais modifie.
+    </p>
+  </header>
+
+  <main>
+    <form id="process-form">
+      <label for="output-folder-name">Nom du dossier de sortie</label>
+      <input id="output-folder-name" type="text" required placeholder="ex: vacances-ete-2026-triees" />
+      <button id="process-button" type="submit">Traiter le dossier</button>
+    </form>
+
+    <p id="status-message" role="status"></p>
+    <div id="progress-bar" class="progress-bar" hidden>
+      <div class="progress-bar__fill"></div>
+    </div>
+
+    <section id="recap" class="recap" hidden>
+      <h2>Recapitulatif</h2>
+      <dl>
+        <dt>Photos conservees</dt>
+        <dd id="recap-kept"></dd>
+        <dt>Photos supprimees</dt>
+        <dd id="recap-deleted"></dd>
+        <dt>Videos copiees</dt>
+        <dd id="recap-videos"></dd>
+        <dt>Espace disque avant</dt>
+        <dd id="recap-space-before"></dd>
+        <dt>Espace disque apres</dt>
+        <dd id="recap-space-after"></dd>
+      </dl>
+    </section>
+  </main>
+
+  <script src="/js/shared.js"></script>
+  <script src="/js/folder-processing.js"></script>
+</body>
+</html>

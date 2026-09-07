@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dedoublonneur - Doublons</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Doublons / quasi-doublons</h1>
+    <p class="app-header__hint">
+      La photo la plus nette de chaque groupe est conservee par defaut ; decochez/cochez pour surcharger.
+    </p>
+    <div class="threshold-control">
+      <label for="threshold">Seuil de similarite : <span id="threshold-value">90</span>%</label>
+      <input id="threshold" type="range" min="0" max="100" value="90" />
+    </div>
+  </header>
+
+  <main>
+    <section id="duplicate-groups" aria-live="polite"></section>
+  </main>
+
+  <script src="/js/shared.js"></script>
+  <script src="/js/duplicate-review.js"></script>
+</body>
+</html>

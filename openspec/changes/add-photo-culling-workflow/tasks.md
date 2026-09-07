@@ -43,38 +43,38 @@
 
 ## 6. Duplicate review tab (duplicate-review)
 
-- [ ] 6.1 Implement Hamming-distance-based union-find clustering service operating over persisted `PhotoAsset.pHash` values
-- [ ] 6.2 Implement `GET /api/jobs/{id}/duplicates?threshold=NN` computing groups on demand (no persistence), with sharpest photo marked `keep` and others `toDelete=true` by default, ties broken by filename/date order
-- [ ] 6.3 Implement per-photo toggle to override the default keep/delete selection within a group
-- [ ] 6.4 Add a short-lived in-memory cache keyed by (jobId, threshold) to avoid recomputation on repeated identical requests
-- [ ] 6.5 Add Swagger/OpenAPI annotations
-- [ ] 6.6 Frontend: "Doublons" tab UI with adjustable similarity threshold control (0-100%) using debounced input (~300ms), lazily-loaded grouped thumbnail display, checkboxes
-- [ ] 6.7 Unit tests: clustering correctness at various thresholds, default best-photo selection, tie-break rule, override toggle
+- [x] 6.1 Implement Hamming-distance-based union-find clustering service operating over persisted `PhotoAsset.pHash` values
+- [x] 6.2 Implement `GET /api/jobs/{id}/duplicates?threshold=NN` computing groups on demand (no persistence), with sharpest photo marked `keep` and others `toDelete=true` by default, ties broken by filename/date order
+- [x] 6.3 Implement per-photo toggle to override the default keep/delete selection within a group
+- [x] 6.4 Add a short-lived in-memory cache keyed by (jobId, threshold) to avoid recomputation on repeated identical requests
+- [x] 6.5 Add Swagger/OpenAPI annotations
+- [x] 6.6 Frontend: "Doublons" tab UI with adjustable similarity threshold control (0-100%) using debounced input (~300ms), lazily-loaded grouped thumbnail display, checkboxes
+- [x] 6.7 Unit tests: clustering correctness at various thresholds, default best-photo selection, tie-break rule, override toggle
 
 ## 7. Folder processing (folder-processing)
 
-- [ ] 7.1 Implement output folder name validation (`POST /api/jobs/{id}/process` rejects if target folder already exists under the NAS output location)
-- [ ] 7.2 Implement raw byte copy (`Files.copy` with `COPY_ATTRIBUTES`) of all kept photos (not marked for deletion in either review tab) to the output folder
-- [ ] 7.3 Implement unconditional copy of all video files found in the source folder to the output folder, excluded from kept/deleted counts
-- [ ] 7.4 Compute and persist `ProcessingResult` (kept/deleted counts, space before/after, output path); transition workflow to `DONE`
-- [ ] 7.5 Purge the ephemeral thumbnail cache for the processed job
-- [ ] 7.6 Add Swagger/OpenAPI annotations
-- [ ] 7.7 Frontend: "Traiter le dossier" action with output folder name prompt and final recap display
-- [ ] 7.8 Unit tests: rejects existing output folder, metadata preservation (EXIF/timestamps unchanged after copy), video pass-through, deleted photos absent from output and source untouched, recap accuracy
+- [x] 7.1 Implement output folder name validation (`POST /api/jobs/{id}/process` rejects if target folder already exists under the NAS output location)
+- [x] 7.2 Implement raw byte copy (`Files.copy` with `COPY_ATTRIBUTES`) of all kept photos (not marked for deletion in either review tab) to the output folder
+- [x] 7.3 Implement unconditional copy of all video files found in the source folder to the output folder, excluded from kept/deleted counts
+- [x] 7.4 Compute and persist `ProcessingResult` (kept/deleted counts, space before/after, output path); transition workflow to `DONE`
+- [x] 7.5 Purge the ephemeral thumbnail cache for the processed job
+- [x] 7.6 Add Swagger/OpenAPI annotations
+- [x] 7.7 Frontend: "Traiter le dossier" action with output folder name prompt and final recap display
+- [x] 7.8 Unit tests: rejects existing output folder, metadata preservation (EXIF/timestamps unchanged after copy), video pass-through, deleted photos absent from output and source untouched, recap accuracy
 
 ## 8. Thumbnails
 
-- [ ] 8.1 Implement thumbnail generation during analysis, cached under local ephemeral disk (`${java.io.tmpdir}/thumbnails/{jobId}/{photoId}.jpg`)
-- [ ] 8.2 Implement `GET /api/photos/{id}/thumbnail` serving from cache, regenerating on cache miss
-- [ ] 8.3 Unit tests: cache miss regeneration, cache purge after processing
+- [x] 8.1 Implement thumbnail generation during analysis, cached under local ephemeral disk (`${java.io.tmpdir}/thumbnails/{jobId}/{photoId}.jpg`)
+- [x] 8.2 Implement `GET /api/photos/{id}/thumbnail` serving from cache, regenerating on cache miss
+- [x] 8.3 Unit tests: cache miss regeneration, cache purge after processing
 
 ## 9. Frontend performance & UX polish (responsive-ui)
 
-- [ ] 9.1 Implement a small shared vanilla-JS utility module: debounce helper, lazy-load/infinite-scroll pagination helper, `fetch`-based partial-panel swapping (no full page reloads)
-- [ ] 9.2 Implement CSS-only transitions/animations (opacity/transform) for tab switching, progress bar updates, and checkbox toggle feedback
-- [ ] 9.3 Verify no SPA framework, bundler, or heavy JS/CSS library is introduced; keep total static asset payload minimal
-- [ ] 9.4 Manual/perf check on representative hardware (or throttled browser profile) that review tabs with 500-2000 photos stay responsive while scrolling and while dragging the similarity threshold
-- [ ] 9.5 Unit/UI tests: debounce delays the recomputation call as expected, lazy-load only fetches visible-page thumbnails
+- [x] 9.1 Implement a small shared vanilla-JS utility module: debounce helper, lazy-load/infinite-scroll pagination helper, `fetch`-based partial-panel swapping (no full page reloads)
+- [x] 9.2 Implement CSS-only transitions/animations (opacity/transform) for tab switching, progress bar updates, and checkbox toggle feedback
+- [x] 9.3 Verify no SPA framework, bundler, or heavy JS/CSS library is introduced; keep total static asset payload minimal
+- [x] 9.4 Manual/perf check on representative hardware (or throttled browser profile) that review tabs with 500-2000 photos stay responsive while scrolling and while dragging the similarity threshold
+- [x] 9.5 Unit/UI tests: debounce delays the recomputation call as expected, lazy-load only fetches visible-page thumbnails
 
 ## 10. Documentation & project hygiene
 

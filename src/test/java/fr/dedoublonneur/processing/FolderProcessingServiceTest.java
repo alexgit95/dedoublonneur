@@ -1,0 +1,206 @@
+package fr.dedoublonneur.processing;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import fr.dedoublonneur.analysis.ThumbnailService;
+import fr.dedoublonneur.domain.AnalysisJob;
+import fr.dedoublonneur.domain.AnalysisJobRepository;
+import fr.dedoublonneur.domain.Event;
+import fr.dedoublonneur.domain.EventRepository;
+import fr.dedoublonneur.domain.JobStatus;
+import fr.dedoublonneur.domain.PhotoAsset;
+import fr.dedoublonneur.domain.PhotoAssetRepository;
+import fr.dedoublonneur.domain.ProcessingResult;
+import fr.dedoublonneur.domain.ProcessingResultRepository;
+
+/**
+ * Couvre le traitement du dossier : rejet dossier de sortie existant, preservation des
+ * metadonnees, passage des videos, absence des photos supprimees, exactitude du recap
+ * (folder-processing spec).
+ *
+ * Pas de @Transactional (voir design.md decision 9) : nettoyage explicite entre tests.
+ */
+@SpringBootTest
+@ActiveProfiles("local")
+class FolderProcessingServiceTest {
+
+    @Autowired
+    private FolderProcessingService folderProcessingService;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private AnalysisJobRepository jobRepository;
+
+    @Autowired
+    private PhotoAssetRepository photoAssetRepository;
+
+    @Autowired
+    private ProcessingResultRepository processingResultRepository;
+
+    @Autowired
+    private ThumbnailService thumbnailService;
+
+    @Autowired
+    private fr.dedoublonneur.config.AppProperties appProperties;
+
+    @AfterEach
+    void cleanUp() {
+        processingResultRepository.deleteAll();
+        photoAssetRepository.deleteAll();
+        jobRepository.deleteAll();
+        eventRepository.deleteAll();
+    }
+
+    @Test
+    void rejectsAlreadyExistingOutputFolder(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        AnalysisJob job = createReadyJob(sourceDir);
+
+        // Le dossier de sortie est resolu sous app.nas.output-path : on cree l'existant la-bas.
+        String outputFolderName = "existant-" + System.nanoTime();
+        Path existingOutputDir = Files.createDirectories(
+                Path.of(appProperties.nas().outputPath(), outputFolderName));
+        try {
+            assertThatThrownBy(() -> folderProcessingService.startProcessing(job.getId(), outputFolderName))
+                    .isInstanceOf(OutputFolderAlreadyExistsException.class);
+        } finally {
+            Files.deleteIfExists(existingOutputDir);
+        }
+    }
+
+    @Test
+    void rejectsProcessingWhenJobIsNotReadyForReview(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Event event = eventRepository.save(new Event("evt-" + System.nanoTime(), sourceDir.toString()));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 0, 90)); // reste ANALYZING
+
+        assertThatThrownBy(() -> folderProcessingService.startProcessing(job.getId(), "sortie"))
+                .isInstanceOf(ProcessingNotAllowedException.class);
+    }
+
+    @Test
+    void copiesKeptPhotoPreservingMetadataAndLeavesSourceUntouched(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Path photo = sourceDir.resolve("IMG_1.jpg");
+        Files.writeString(photo, "contenu-photo-simulee");
+        FileTime originalModifiedTime = FileTime.from(Instant.now().minus(10, ChronoUnit.DAYS));
+        Files.setLastModifiedTime(photo, originalModifiedTime);
+
+        AnalysisJob job = createReadyJob(sourceDir);
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_1.jpg", Files.size(photo), 100.0, 1L, false));
+
+        Path outputDir = root.resolve("output");
+        folderProcessingService.processFolder(job.getId(), sourceDir.toString(), outputDir.toString());
+
+        Path copied = outputDir.resolve("IMG_1.jpg");
+        assertThat(copied).exists();
+        assertThat(Files.readString(copied)).isEqualTo("contenu-photo-simulee");
+        BasicFileAttributes copiedAttrs = Files.readAttributes(copied, BasicFileAttributes.class);
+        assertThat(copiedAttrs.lastModifiedTime()).isEqualTo(originalModifiedTime);
+        // Le fichier source n'est jamais modifie ni supprime.
+        assertThat(photo).exists();
+        assertThat(Files.readString(photo)).isEqualTo("contenu-photo-simulee");
+    }
+
+    @Test
+    void deletedPhotoIsAbsentFromOutputAndSourceRemainsUntouched(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Path photo = sourceDir.resolve("IMG_blurry.jpg");
+        Files.writeString(photo, "photo-floue");
+
+        AnalysisJob job = createReadyJob(sourceDir);
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_blurry.jpg", Files.size(photo), 1.0, 1L, true));
+
+        Path outputDir = root.resolve("output");
+        folderProcessingService.processFolder(job.getId(), sourceDir.toString(), outputDir.toString());
+
+        assertThat(outputDir.resolve("IMG_blurry.jpg")).doesNotExist();
+        assertThat(photo).exists();
+    }
+
+    @Test
+    void copiesVideosUnconditionallyWithoutCountingThemAsPhotos(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Files.writeString(sourceDir.resolve("clip.mp4"), "contenu-video");
+
+        AnalysisJob job = createReadyJob(sourceDir);
+
+        Path outputDir = root.resolve("output");
+        folderProcessingService.processFolder(job.getId(), sourceDir.toString(), outputDir.toString());
+
+        assertThat(outputDir.resolve("clip.mp4")).exists();
+        ProcessingResult result = processingResultRepository.findByJobId(job.getId()).orElseThrow();
+        assertThat(result.getVideoCount()).isEqualTo(1);
+        assertThat(result.getKeptCount()).isZero();
+        assertThat(result.getDeletedCount()).isZero();
+    }
+
+    @Test
+    void recapReflectsKeptDeletedAndSpaceAccurately(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Path keptPhoto = sourceDir.resolve("IMG_kept.jpg");
+        Path deletedPhoto = sourceDir.resolve("IMG_deleted.jpg");
+        Files.writeString(keptPhoto, "1234567890"); // 10 octets
+        Files.writeString(deletedPhoto, "12345"); // 5 octets
+
+        AnalysisJob job = createReadyJob(sourceDir);
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_kept.jpg", Files.size(keptPhoto), 200.0, 1L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "IMG_deleted.jpg", Files.size(deletedPhoto), 1.0, 2L, true));
+
+        Path outputDir = root.resolve("output");
+        folderProcessingService.processFolder(job.getId(), sourceDir.toString(), outputDir.toString());
+
+        ProcessingResult result = processingResultRepository.findByJobId(job.getId()).orElseThrow();
+        assertThat(result.getKeptCount()).isEqualTo(1);
+        assertThat(result.getDeletedCount()).isEqualTo(1);
+        assertThat(result.getSpaceBeforeBytes()).isEqualTo(15L);
+        assertThat(result.getSpaceAfterBytes()).isEqualTo(10L);
+
+        AnalysisJob reloaded = jobRepository.findById(job.getId()).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(JobStatus.DONE);
+    }
+
+    @Test
+    void purgesThumbnailCacheOnceProcessingCompletes(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Path photoFile = sourceDir.resolve("IMG_1.jpg");
+        Files.writeString(photoFile, "photo");
+
+        AnalysisJob job = createReadyJob(sourceDir);
+        PhotoAsset photo = photoAssetRepository.save(new PhotoAsset(job, "IMG_1.jpg", 5L, 100.0, 1L, false));
+        Files.createDirectories(thumbnailService.cacheDir(job.getId()));
+        Files.writeString(thumbnailService.getPath(job.getId(), photo.getId()), "vignette-simulee");
+        assertThat(thumbnailService.exists(job.getId(), photo.getId())).isTrue();
+
+        Path outputDir = root.resolve("output");
+        folderProcessingService.processFolder(job.getId(), sourceDir.toString(), outputDir.toString());
+
+        assertThat(thumbnailService.exists(job.getId(), photo.getId())).isFalse();
+        assertThat(Files.exists(thumbnailService.cacheDir(job.getId()))).isFalse();
+    }
+
+    private AnalysisJob createReadyJob(Path sourceDir) {
+        Event event = eventRepository.save(new Event("evt-" + System.nanoTime(), sourceDir.toString()));
+        AnalysisJob job = new AnalysisJob(event, 0, 90);
+        job.setStatus(JobStatus.READY_FOR_REVIEW);
+        return jobRepository.save(job);
+    }
+}

@@ -30,6 +30,7 @@ entity "PhotoAsset" as photo {
   * p_hash : BIGINT
   * blurred : BOOLEAN
   * marked_for_deletion : BOOLEAN
+  * deletion_overridden : BOOLEAN
   * analyzed_at : TIMESTAMP
 }
 

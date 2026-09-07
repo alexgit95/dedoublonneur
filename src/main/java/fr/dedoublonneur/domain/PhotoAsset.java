@@ -51,6 +51,14 @@ public class PhotoAsset {
     @Column(nullable = false)
     private boolean markedForDeletion;
 
+    /**
+     * Vrai des que l'utilisateur a explicitement bascule cette photo (bouton coche/decoche).
+     * Permet de ne jamais ecraser un choix manuel lors du recalcul des groupes de doublons
+     * a un nouveau seuil de similarite (cf. duplicate-review spec).
+     */
+    @Column(nullable = false)
+    private boolean deletionOverridden;
+
     @Column(nullable = false)
     private Instant analyzedAt;
 
@@ -104,6 +112,14 @@ public class PhotoAsset {
 
     public void setMarkedForDeletion(boolean markedForDeletion) {
         this.markedForDeletion = markedForDeletion;
+    }
+
+    public boolean isDeletionOverridden() {
+        return deletionOverridden;
+    }
+
+    public void setDeletionOverridden(boolean deletionOverridden) {
+        this.deletionOverridden = deletionOverridden;
     }
 
     public Instant getAnalyzedAt() {

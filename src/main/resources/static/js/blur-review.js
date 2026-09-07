@@ -1,6 +1,5 @@
 // Onglet "Flou" : liste paginee des photos floues, cochees par defaut pour suppression.
-// NOTE: les aides partagees (debounce, lazy-load generique) seront extraites dans un
-// module commun lors de la section "responsive-ui" ; ce fichier reste autonome pour l'instant.
+// Utilise le module partage shared.js (debounce/pagination/carte photo) - cf. responsive-ui.
 (() => {
   const PAGE_SIZE = 24;
 
@@ -20,7 +19,8 @@
       grid.textContent = "Aucun job specifie (parametre ?jobId= manquant dans l'URL).";
       return;
     }
-    const response = await fetch(`/api/jobs/${jobId}/blurred?page=${page}&size=${PAGE_SIZE}`);
+    const url = DedoublonneurUI.buildPaginatedUrl(`/api/jobs/${jobId}/blurred`, page, PAGE_SIZE);
+    const response = await fetch(url);
     if (!response.ok) {
       grid.textContent = "Impossible de charger les photos floues.";
       return;
@@ -35,62 +35,7 @@
   function renderGrid(photos) {
     grid.innerHTML = "";
     for (const photo of photos) {
-      grid.appendChild(renderPhotoCard(photo));
-    }
-  }
-
-  function renderPhotoCard(photo) {
-    const card = document.createElement("article");
-    card.className = "photo-card";
-    card.dataset.photoId = photo.id;
-
-    const img = document.createElement("img");
-    img.src = photo.thumbnailUrl;
-    img.loading = "lazy";
-    img.alt = photo.relativePath;
-    img.onerror = () => {
-      img.src = "";
-      img.alt = "Vignette indisponible";
-    };
-
-    const label = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = photo.markedForDeletion;
-    checkbox.addEventListener("change", () => onToggle(photo.id, checkbox, card));
-
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode("A supprimer"));
-
-    card.appendChild(img);
-    card.appendChild(label);
-    updateCardState(card, checkbox.checked);
-    return card;
-  }
-
-  function updateCardState(card, markedForDeletion) {
-    card.classList.toggle("photo-card--keeping", !markedForDeletion);
-  }
-
-  async function onToggle(photoId, checkbox, card) {
-    const previous = !checkbox.checked;
-    checkbox.disabled = true;
-    try {
-      const response = await fetch(`/api/photos/${photoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markedForDeletion: checkbox.checked }),
-      });
-      if (!response.ok) {
-        throw new Error("Echec de la mise a jour");
-      }
-      const updated = await response.json();
-      updateCardState(card, updated.markedForDeletion);
-    } catch (error) {
-      checkbox.checked = previous;
-      updateCardState(card, previous);
-    } finally {
-      checkbox.disabled = false;
+      grid.appendChild(DedoublonneurUI.createPhotoCard(photo));
     }
   }
 

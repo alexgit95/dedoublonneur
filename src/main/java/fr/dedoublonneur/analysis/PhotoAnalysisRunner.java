@@ -37,13 +37,15 @@ public class PhotoAnalysisRunner {
     private final AnalysisJobRepository jobRepository;
     private final PhotoAssetRepository photoAssetRepository;
     private final ImageAnalysisService imageAnalysisService;
+    private final ThumbnailService thumbnailService;
     private final AppProperties appProperties;
 
     public PhotoAnalysisRunner(AnalysisJobRepository jobRepository, PhotoAssetRepository photoAssetRepository,
-            ImageAnalysisService imageAnalysisService, AppProperties appProperties) {
+            ImageAnalysisService imageAnalysisService, ThumbnailService thumbnailService, AppProperties appProperties) {
         this.jobRepository = jobRepository;
         this.photoAssetRepository = photoAssetRepository;
         this.imageAnalysisService = imageAnalysisService;
+        this.thumbnailService = thumbnailService;
         this.appProperties = appProperties;
     }
 
@@ -107,8 +109,9 @@ public class PhotoAnalysisRunner {
             PhotoAnalysisResult result = imageAnalysisService.analyze(photoPath);
             long fileSize = Files.size(photoPath);
             boolean blurred = result.blurScore() < appProperties.analysis().blurThreshold();
-            photoAssetRepository.save(
+            PhotoAsset photo = photoAssetRepository.save(
                     new PhotoAsset(job, relativePath, fileSize, result.blurScore(), result.pHash(), blurred));
+            generateThumbnail(job.getId(), photo.getId(), photoPath);
         } catch (IOException e) {
             // Une photo illisible ne doit pas bloquer l'analyse des autres : on la journalise et on continue.
             log.warn("Photo ignoree (illisible): {}", photoPath, e);
@@ -119,5 +122,14 @@ public class PhotoAnalysisRunner {
         long analyzed = photoAssetRepository.countByJobId(job.getId());
         job.setLastProcessedCount((int) analyzed);
         jobRepository.save(job);
+    }
+
+    /** Echec non bloquant : la vignette peut toujours etre regeneree a la demande (cf. ThumbnailController). */
+    private void generateThumbnail(Long jobId, Long photoId, Path photoPath) {
+        try {
+            thumbnailService.generate(jobId, photoId, photoPath);
+        } catch (IOException e) {
+            log.warn("Vignette non generee pour la photo {}", photoPath, e);
+        }
     }
 }
