@@ -41,8 +41,13 @@ EXPOSE 8686
 ENV APP_TIMEZONE=Europe/Paris
 
 # Profil docker → PostgreSQL
+# Options JVM sobres pour Raspberry Pi 4 (4 Go RAM partages) : Serial GC (faible empreinte,
+# pas de threads GC concurrents) et tas borne pour eviter toute pression memoire sur l'hote.
 ENTRYPOINT ["java", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-Duser.timezone=Europe/Paris", \
     "-Dspring.profiles.active=docker", \
+    "-XX:+UseSerialGC", \
+    "-Xmx384m", \
+    "-XX:MaxMetaspaceSize=128m", \
     "-jar", "app.jar"]

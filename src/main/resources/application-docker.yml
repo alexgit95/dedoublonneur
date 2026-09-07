@@ -1,0 +1,20 @@
+# Profil docker/prod : PostgreSQL (conteneur dedie sur le Raspberry Pi).
+spring:
+  datasource:
+    url: jdbc:postgresql://${APP_DB_HOST:postgres}:${APP_DB_PORT:5432}/${APP_DB_NAME:dedoublonneur}
+    username: ${APP_DB_USER:dedoublonneur}
+    password: ${APP_DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+app:
+  nas:
+    source-path: ${APP_NAS_SOURCE_PATH:/mnt/nas/source}
+    output-path: ${APP_NAS_OUTPUT_PATH:/mnt/nas/output}
+
+logging:
+  level:
+    fr.dedoublonneur: INFO

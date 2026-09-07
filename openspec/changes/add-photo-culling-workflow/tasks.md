@@ -1,37 +1,37 @@
 ## 1. Project bootstrap
 
-- [ ] 1.1 Initialize Maven project (`pom.xml`, `mvnw`/`mvnw.cmd`, `.mvn/`) with Spring Boot 4.x parent, Java 25 target, matching the existing `Dockerfile` expectations (`target/dedoublonneur-*.jar`, `src/main/resources/static`)
-- [ ] 1.2 Add dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `springdoc-openapi-starter-webmvc-ui`, SQLite JDBC driver + Hibernate dialect, PostgreSQL JDBC driver, TwelveMonkeys ImageIO (JPEG plugin), metadata-extractor (drewnoakes)
-- [ ] 1.3 Create `application.yml` base config plus `application-local.yml` (SQLite, NAS bind mount path) and `application-docker.yml` (PostgreSQL) profiles
-- [ ] 1.4 Configure a single-thread `ThreadPoolTaskExecutor` bean (core=1, max=1, reject-on-full policy) for the analysis/processing background job
-- [ ] 1.5 Configure JVM/GC options appropriate for Raspberry Pi 4 constraints (documented in README, e.g. `-XX:+UseSerialGC` guidance for the `docker` profile entrypoint)
+- [x] 1.1 Initialize Maven project (`pom.xml`, `mvnw`/`mvnw.cmd`, `.mvn/`) with Spring Boot 4.x parent, Java 25 target, matching the existing `Dockerfile` expectations (`target/dedoublonneur-*.jar`, `src/main/resources/static`)
+- [x] 1.2 Add dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `springdoc-openapi-starter-webmvc-ui`, SQLite JDBC driver + Hibernate dialect, PostgreSQL JDBC driver, TwelveMonkeys ImageIO (JPEG plugin), metadata-extractor (drewnoakes)
+- [x] 1.3 Create `application.yml` base config plus `application-local.yml` (SQLite, NAS bind mount path) and `application-docker.yml` (PostgreSQL) profiles
+- [x] 1.4 Configure a single-thread `ThreadPoolTaskExecutor` bean (core=1, max=1, reject-on-full policy) for the analysis/processing background job
+- [x] 1.5 Configure JVM/GC options appropriate for Raspberry Pi 4 constraints (documented in README, e.g. `-XX:+UseSerialGC` guidance for the `docker` profile entrypoint)
 
 ## 2. Data model
 
-- [ ] 2.1 Create `@Entity` classes: `Event`, `AnalysisJob`, `PhotoAsset`, `ProcessingResult`, using portable types/generation strategy (SQLite + PostgreSQL compatible, `GenerationType.SEQUENCE`/`AUTO`)
-- [ ] 2.2 Create Spring Data JPA repositories for each entity, including paginated finder methods for `PhotoAsset` (by job + blurred flag)
-- [ ] 2.3 Verify `ddl-auto` schema generation works identically against SQLite (local) and PostgreSQL (docker/test) profiles
-- [ ] 2.4 Update `docs/database.puml` PlantUML diagram to reflect the new entities and relationships
+- [x] 2.1 Create `@Entity` classes: `Event`, `AnalysisJob`, `PhotoAsset`, `ProcessingResult`, using portable types/generation strategy (SQLite + PostgreSQL compatible, `GenerationType.SEQUENCE`/`AUTO`)
+- [x] 2.2 Create Spring Data JPA repositories for each entity, including paginated finder methods for `PhotoAsset` (by job + blurred flag)
+- [x] 2.3 Verify `ddl-auto` schema generation works identically against SQLite (local) and PostgreSQL (docker/test) profiles
+- [x] 2.4 Update `docs/database.puml` PlantUML diagram to reflect the new entities and relationships
 
 ## 3. Event folder & workflow lock (event-folder-workflow)
 
-- [ ] 3.1 Implement `WorkflowStateService` exposing current status (`IDLE`, `ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`, `DONE`) backed by the single active `AnalysisJob` row
-- [ ] 3.2 Implement `GET /api/events` listing sub-folders under the configured NAS source mount
-- [ ] 3.3 Implement `POST /api/events/{folderName}/analysis` to start analysis, rejecting the request (409) if another workflow is active
-- [ ] 3.4 Implement `POST /api/workflow/cancel` to manually reset a stuck workflow back to `IDLE`
-- [ ] 3.5 Add Swagger/OpenAPI annotations (`@Tag`, `@Operation`, `@ApiResponse`) to all workflow endpoints
-- [ ] 3.6 Unit tests: lock rejection when active, state transitions, cancel/reset behavior
+- [x] 3.1 Implement `WorkflowStateService` exposing current status (`IDLE`, `ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`, `DONE`) backed by the single active `AnalysisJob` row
+- [x] 3.2 Implement `GET /api/events` listing sub-folders under the configured NAS source mount
+- [x] 3.3 Implement `POST /api/events/{folderName}/analysis` to start analysis, rejecting the request (409) if another workflow is active
+- [x] 3.4 Implement `POST /api/workflow/cancel` to manually reset a stuck workflow back to `IDLE`
+- [x] 3.5 Add Swagger/OpenAPI annotations (`@Tag`, `@Operation`, `@ApiResponse`) to all workflow endpoints
+- [x] 3.6 Unit tests: lock rejection when active, state transitions, cancel/reset behavior
 
 ## 4. Photo analysis job (photo-analysis)
 
-- [ ] 4.1 Implement file-snapshot logic: list JPEG files in the selected folder at job start, persist as the job's fixed scope
-- [ ] 4.2 Implement blur score computation (grayscale downscale + Laplacian variance) using TwelveMonkeys ImageIO, without rewriting source files
-- [ ] 4.3 Implement pHash computation (DCT/average-hash on downscaled grayscale image) and persist as a `PhotoAsset` field
-- [ ] 4.4 Implement the `@Async` analysis task iterating the snapshot, persisting a checkpoint (last processed count) every ~20 photos
-- [ ] 4.5 Implement manual resume: on-demand endpoint that continues an interrupted job from its last checkpoint without recomputing existing `PhotoAsset` rows
-- [ ] 4.6 Implement `GET /api/jobs/{id}` progress endpoint (status, analyzedCount, totalCount) for polling
-- [ ] 4.7 Add Swagger/OpenAPI annotations to analysis endpoints
-- [ ] 4.8 Unit tests: blur score computation, pHash computation, checkpoint persistence, resume-skips-existing-photos, ignores files added after snapshot
+- [x] 4.1 Implement file-snapshot logic: list JPEG files in the selected folder at job start, persist as the job's fixed scope
+- [x] 4.2 Implement blur score computation (grayscale downscale + Laplacian variance) using TwelveMonkeys ImageIO, without rewriting source files
+- [x] 4.3 Implement pHash computation (DCT/average-hash on downscaled grayscale image) and persist as a `PhotoAsset` field
+- [x] 4.4 Implement the `@Async` analysis task iterating the snapshot, persisting a checkpoint (last processed count) every ~20 photos
+- [x] 4.5 Implement manual resume: on-demand endpoint that continues an interrupted job from its last checkpoint without recomputing existing `PhotoAsset` rows
+- [x] 4.6 Implement `GET /api/jobs/{id}` progress endpoint (status, analyzedCount, totalCount) for polling
+- [x] 4.7 Add Swagger/OpenAPI annotations to analysis endpoints
+- [x] 4.8 Unit tests: blur score computation, pHash computation, checkpoint persistence, resume-skips-existing-photos, ignores files added after snapshot
 
 ## 5. Blur review tab (blur-review)
 

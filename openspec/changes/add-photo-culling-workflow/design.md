@@ -75,7 +75,8 @@ AnalysisJob    (id, event_id FK, status, snapshotSize, lastProcessedCount, simil
 PhotoAsset     (id, job_id FK, relativePath, fileSize, blurScore, pHash, isBlurredFlag, analyzedAt)
 ProcessingResult (id, job_id FK, keptCount, deletedCount, videoCount, spaceBeforeBytes, spaceAfterBytes, outputFolderPath, processedAt)
 ```
-- `GenerationType.SEQUENCE` (or `AUTO`) preferred over `IDENTITY` for cross-dialect portability.
+- `GenerationType.AUTO` is used for all entities (Hibernate's table-based hi/lo id generator, the only strategy found to produce correct, portable DDL on both SQLite and PostgreSQL for this Hibernate/dialect version combination). Integration tests must NOT wrap DB-writing test methods in `@Transactional` rollback: the hi/lo generator bumps its counter via its own nested transaction, which deadlocks against SQLite's single-writer lock if an outer test transaction is left open for the whole test method. Tests instead clean up explicitly (`@AfterEach` deleting rows, children before parents) between cases.
+- Any service/component that loads an entity in one short transaction and later navigates one of its lazy (`FetchType.LAZY`) associations in a different call MUST instead use a dedicated repository `@Query` selecting the needed field directly (e.g. `select j.event.folderPath from AnalysisJob j where j.id = :jobId`), to avoid `LazyInitializationException` on detached entities.
 - `pHash` stored as a `BIGINT`/`long` (or string of hex) — avoid Postgres-only types (no `jsonb`, no arrays).
 - Only one `AnalysisJob` may be in a non-terminal status (`ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`) at a time — enforced at the service layer (check-then-create under the single-thread executor), not via a DB constraint, since SQLite/PostgreSQL portable partial-unique-index syntax differs.
 

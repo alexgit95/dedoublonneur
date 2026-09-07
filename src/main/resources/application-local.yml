@@ -1,0 +1,18 @@
+# Profil local : SQLite, pas de dependance Docker externe obligatoire.
+spring:
+  datasource:
+    url: jdbc:sqlite:${APP_SQLITE_PATH:./data/dedoublonneur-local.db}
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+
+app:
+  nas:
+    source-path: ${APP_NAS_SOURCE_PATH:./nas-mount/source}
+    output-path: ${APP_NAS_OUTPUT_PATH:./nas-mount/output}
+
+logging:
+  level:
+    fr.dedoublonneur: DEBUG

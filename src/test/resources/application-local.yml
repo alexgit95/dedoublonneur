@@ -1,0 +1,8 @@
+# Surcharge du profil "local" en test : base SQLite en memoire partagee entre
+# connexions du pool, recreee a chaque execution (aucun fichier persistant).
+spring:
+  datasource:
+    url: jdbc:sqlite:file::memory:?cache=shared
+  jpa:
+    hibernate:
+      ddl-auto: create-drop

@@ -1,0 +1,67 @@
+@startuml database
+title Dedoublonneur - Modele de donnees (Hibernate ddl-auto, SQLite / PostgreSQL)
+
+entity "Event" as event {
+  * id : BIGINT <<PK>>
+  --
+  * folder_name : VARCHAR(512) <<unique>>
+  * folder_path : VARCHAR(1024)
+}
+
+entity "AnalysisJob" as job {
+  * id : BIGINT <<PK>>
+  --
+  * event_id : BIGINT <<FK>>
+  * status : VARCHAR(32)
+  * snapshot_size : INT
+  * last_processed_count : INT
+  * similarity_threshold_default : INT
+  * started_at : TIMESTAMP
+  finished_at : TIMESTAMP
+}
+
+entity "PhotoAsset" as photo {
+  * id : BIGINT <<PK>>
+  --
+  * job_id : BIGINT <<FK>>
+  * relative_path : VARCHAR(1024)
+  * file_size : BIGINT
+  * blur_score : DOUBLE
+  * p_hash : BIGINT
+  * blurred : BOOLEAN
+  * marked_for_deletion : BOOLEAN
+  * analyzed_at : TIMESTAMP
+}
+
+entity "ProcessingResult" as result {
+  * id : BIGINT <<PK>>
+  --
+  * job_id : BIGINT <<FK, unique>>
+  * kept_count : INT
+  * deleted_count : INT
+  * video_count : INT
+  * space_before_bytes : BIGINT
+  * space_after_bytes : BIGINT
+  * output_folder_path : VARCHAR(1024)
+  * processed_at : TIMESTAMP
+}
+
+event ||--o{ job : "1 evenement -> N jobs (historique)"
+job ||--o{ photo : "1 job -> N photos analysees"
+job ||--o| result : "1 job -> 0..1 recapitulatif"
+
+note right of photo
+  Les groupes de doublons ne sont jamais
+  persistes : seul p_hash est stocke, le
+  regroupement par similarite est recalcule
+  a la demande (seuil ajustable cote client).
+end note
+
+note bottom of job
+  Un seul AnalysisJob doit etre dans un statut
+  non terminal (ANALYZING, READY_FOR_REVIEW,
+  PROCESSING) a la fois - verrou applique au
+  niveau service, pas par contrainte SQL portable.
+end note
+
+@enduml

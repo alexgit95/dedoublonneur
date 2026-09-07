@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: dedoublonneur
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+server:
+  port: 8686
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Chemin racine (point de montage NAS) contenant les dossiers evenement en entree/sortie.
+# Surchargeable via variable d'environnement APP_NAS_SOURCE_PATH / APP_NAS_OUTPUT_PATH.
+app:
+  nas:
+    source-path: ${APP_NAS_SOURCE_PATH:/data/nas/source}
+    output-path: ${APP_NAS_OUTPUT_PATH:/data/nas/output}
+  analysis:
+    checkpoint-batch-size: 20
+    default-similarity-threshold: 90
+    # Score de variance du Laplacien en-dessous duquel une photo est consideree floue.
+    # Valeur de depart heuristique, a affiner lors des tests reels (cf. design.md).
+    blur-threshold: 60.0
