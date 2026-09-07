@@ -78,14 +78,14 @@
 
 ## 10. Documentation & project hygiene
 
-- [ ] 10.1 Update root `README.md` with the functional workflow description (event selection, analysis, review tabs, processing, recap)
-- [ ] 10.2 Update root `CHANGELOG.md` under `[Added]` describing the new photo-culling workflow feature
-- [ ] 10.3 Provide a ready-to-use `docker-compose.yml` example (repo root or `docs/`) with two services — the app (built from the existing `Dockerfile`, `docker`/prod Spring profile) and `postgres` — including the NAS bind mount (source + output folders) and a named volume for PostgreSQL data persistence, plus the required environment variables (DB host/credentials, active profile, NAS paths)
-- [ ] 10.4 Write a step-by-step **"Déploiement sur Arcane"** guide in `README.md` (or a linked `docs/DEPLOYMENT.md`), written for a non-expert user, covering:
+- [x] 10.1 Update root `README.md` with the functional workflow description (event selection, analysis, review tabs, processing, recap)
+- [x] 10.2 Update root `CHANGELOG.md` under `[Added]` describing the new photo-culling workflow feature
+- [x] 10.3 Provide a ready-to-use `docker-compose.yml` example (repo root or `docs/`) with two services — the app (built from the existing `Dockerfile`, `docker`/prod Spring profile) and `postgres` — including the NAS bind mount (source + output folders) and a named volume for PostgreSQL data persistence, plus the required environment variables (DB host/credentials, active profile, NAS paths)
+- [x] 10.4 Write a step-by-step **"Déploiement sur Arcane"** guide in `README.md` (or a linked `docs/DEPLOYMENT.md`), written for a non-expert user, covering:
   - Prérequis : Arcane accessible sur le Raspberry Pi, Docker fonctionnel, partage NAS déjà monté/accessible depuis l'hôte
   - Où récupérer l'image Docker (built automatiquement par la GitHub Action à chaque push) et comment référencer le bon tag/`latest` dans le compose
   - Créer la stack dans Arcane : Stacks → Add stack → coller le contenu du `docker-compose.yml` fourni → renseigner les variables d'environnement (identifiants PostgreSQL, chemins NAS) via l'UI Arcane → Deploy
   - Vérifications au premier démarrage : statut "healthy" des conteneurs dans Arcane, logs de l'app confirmant la création du schéma Hibernate, accès à l'IHM via `http://<ip-raspberry>:8686`
   - Mettre à jour l'application après un nouveau commit/push : comment redéployer la stack dans Arcane pour tirer la nouvelle image (pull + redeploy du service app, sans toucher au service PostgreSQL/volume de données)
   - Dépannage courant : partage NAS non visible dans le conteneur, erreur de connexion PostgreSQL, conteneur en boucle de redémarrage — où regarder les logs dans Arcane
-- [ ] 10.5 Verify all new REST endpoints run and are tested via Maven at `C:\USINE_LOGICIELLE\apache-maven\bin`
+- [x] 10.5 Verify all new REST endpoints run and are tested via Maven at `C:\USINE_LOGICIELLE\apache-maven\bin`

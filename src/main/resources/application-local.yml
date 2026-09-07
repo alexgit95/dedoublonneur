@@ -1,7 +1,8 @@
 # Profil local : SQLite, pas de dependance Docker externe obligatoire.
 spring:
   datasource:
-    url: jdbc:sqlite:${APP_SQLITE_PATH:./data/dedoublonneur-local.db}
+    # Pas de sous-dossier : le pilote SQLite cree le fichier mais jamais les repertoires parents.
+    url: jdbc:sqlite:${APP_SQLITE_PATH:./dedoublonneur-local.db}
     driver-class-name: org.sqlite.JDBC
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect

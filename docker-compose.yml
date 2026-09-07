@@ -1,0 +1,46 @@
+services:
+  app:
+    image: ${DOCKERHUB_USERNAME:-changeme}/dedoublonneur:latest
+    container_name: dedoublonneur-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8686:8686"
+    environment:
+      # Profil actif : PostgreSQL + reglages production (deja force par le Dockerfile,
+      # rappele ici pour la lisibilite de la stack Arcane).
+      SPRING_PROFILES_ACTIVE: docker
+      APP_DB_HOST: postgres
+      APP_DB_PORT: "5432"
+      APP_DB_NAME: dedoublonneur
+      APP_DB_USER: dedoublonneur
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?definir un mot de passe PostgreSQL}
+      # Chemins vus DEPUIS LE CONTENEUR (cf. montages ci-dessous), pas les chemins hote.
+      APP_NAS_SOURCE_PATH: /mnt/nas/source
+      APP_NAS_OUTPUT_PATH: /mnt/nas/output
+    volumes:
+      # Point de montage NAS : dossiers evenement en entree, dossiers tries en sortie.
+      # Adapter le chemin hote (a gauche du ':') a votre partage NAS monte sur le Raspberry Pi.
+      - ${NAS_SOURCE_HOST_PATH:-/mnt/nas/photos/source}:/mnt/nas/source
+      - ${NAS_OUTPUT_HOST_PATH:-/mnt/nas/photos/output}:/mnt/nas/output
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dedoublonneur-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dedoublonneur
+      POSTGRES_USER: dedoublonneur
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:?definir un mot de passe PostgreSQL}
+    volumes:
+      - dedoublonneur-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dedoublonneur -d dedoublonneur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dedoublonneur-postgres-data:

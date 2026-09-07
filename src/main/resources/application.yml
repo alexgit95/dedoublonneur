@@ -1,6 +1,10 @@
 spring:
   application:
     name: dedoublonneur
+  # Profil "local" (SQLite) actif par defaut pour le dev sans Docker ; le conteneur
+  # force -Dspring.profiles.active=docker (PostgreSQL) via l'entrypoint du Dockerfile.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   jpa:
     hibernate:
       ddl-auto: update

@@ -7,6 +7,7 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Workflow complet de tri de photos** (`add-photo-culling-workflow`) : selection d'un dossier evenement, analyse en tache de fond (flou + doublons), revue manuelle (onglets Flou/Doublons), puis traitement (copie vers un dossier de sortie avec preservation des metadonnees et recapitulatif). Detail des sous-fonctionnalites ci-dessous.
 - Initialisation du projet Maven/Spring Boot 4 (`pom.xml`, wrapper Maven `mvnw`/`mvnw.cmd`) avec les dependances necessaires au workflow de tri de photos : `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `springdoc-openapi-starter-webmvc-ui`, pilotes SQLite (profil `local`) et PostgreSQL (profil `docker`), TwelveMonkeys ImageIO (decodage JPEG) et metadata-extractor (lecture EXIF).
 - Configuration Spring par profils : `application.yml` (base), `application-local.yml` (SQLite, sans dependance Docker), `application-docker.yml` (PostgreSQL).
 - Executeur mono-thread (`AsyncConfig`) dedie au futur job d'analyse/traitement en tache de fond, garantissant qu'un seul workflow tourne a la fois.
@@ -21,6 +22,7 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - Traitement du dossier (`folder-processing`) : `POST /api/jobs/{id}/process` valide le nom de dossier de sortie (rejet si deja existant ou job non pret), copie brute (`Files.copy` + `COPY_ATTRIBUTES`) des photos conservees et de toutes les videos vers la sortie sans jamais modifier la source, calcule et persiste le recapitulatif (`ProcessingResult`, `GET /api/jobs/{id}/result`), purge le cache de vignettes ephemere et le cache de clustering de doublons du job traite, et page IHM "Traiter le dossier" avec recapitulatif final (`static/traiter.html`).
 - Vignettes (`ThumbnailService`) : generation pendant l'analyse, cache disque ephemere `${java.io.tmpdir}/thumbnails/{jobId}/{photoId}.jpg`, endpoint `GET /api/photos/{id}/thumbnail` avec regeneration a la demande en cas d'absence du cache.
 - Module JS partage `static/js/shared.js` (debounce, construction d'URL paginee, carte photo avec vignette en chargement paresseux) reutilise par les pages Flou/Doublons/Traitement, barre de progression animee en CSS pendant le traitement, et tests legers sans dependance (`src/test/js/shared.test.js`, executable via `node`).
+- Documentation fonctionnelle du workflow dans `README.md`, `docker-compose.yml` pret a l'emploi (app + PostgreSQL, montage NAS, volume de donnees) et guide de deploiement pas-a-pas sur Arcane.
 
 ### Changed
 - `Dockerfile` : ajout d'options JVM sobres pour Raspberry Pi 4 (`-XX:+UseSerialGC`, `-Xmx384m`, `-XX:MaxMetaspaceSize=128m`).
