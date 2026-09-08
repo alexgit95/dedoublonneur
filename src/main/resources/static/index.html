@@ -90,8 +90,20 @@
         <input id="output-folder-name" type="text" required placeholder="ex: vacances-ete-2026-triees" />
         <button id="process-button" class="primary-action" type="submit">Lancer le traitement</button>
       </form>
+      <button id="preview-processing" class="secondary-action" type="button">Calculer le recapitulatif</button>
+      <section id="processing-preview" class="processing-preview" hidden aria-live="polite">
+        <h3>Estimation avant traitement</h3>
+        <dl>
+          <dt>Photos conservees</dt><dd id="preview-kept"></dd>
+          <dt>Photos supprimees</dt><dd id="preview-deleted"></dd>
+          <dt>Videos copiees</dt><dd id="preview-videos"></dd>
+          <dt>Taille conservee</dt><dd id="preview-kept-bytes"></dd>
+          <dt>Economie estimee</dt><dd id="preview-saved-bytes"></dd>
+        </dl>
+      </section>
       <p id="status-message" class="status-message" role="status"></p>
-      <div id="progress-bar" class="progress-bar" hidden><div class="progress-bar__fill"></div></div>
+      <div id="progress-bar" class="progress-bar" hidden><div id="processing-progress-fill" class="progress-bar__fill"></div></div>
+      <p id="processing-progress-label" class="status-message" hidden></p>
       <section id="recap" class="recap" hidden>
         <h3>Recapitulatif</h3>
         <dl>

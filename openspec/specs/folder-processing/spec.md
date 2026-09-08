@@ -38,8 +38,16 @@ The system SHALL NOT copy photos marked for deletion to the output folder, and S
 - **THEN** the deleted photo is absent from the output folder and remains untouched in the source folder
 
 ### Requirement: Processing recap
-The system SHALL present a recap after processing completes, including the number of photos kept, the number of photos deleted, disk space used before processing, and disk space used after processing (output folder size).
+The system SHALL present a recap after processing completes, including the number of photos kept, the number of photos deleted, disk space used before processing, and disk space used after processing (output folder size). The system SHALL also provide a side-effect-free preview before processing and determinate progress while processing asynchronously. Failed asynchronous processing SHALL mark the job `CANCELLED` and SHALL not present a successful recap.
 
 #### Scenario: Processing completes successfully
 - **WHEN** processing of the folder finishes
 - **THEN** the system displays the count of kept photos, the count of deleted photos, and the disk space before vs. after
+
+#### Scenario: User previews before processing
+- **WHEN** the user requests an estimate before launching processing
+- **THEN** the system displays kept/deleted counts and estimated saved bytes without copying files or changing the source folder
+
+#### Scenario: Processing fails
+- **WHEN** an error prevents the folder processing from completing
+- **THEN** the job is marked `CANCELLED`, no successful recap is presented for that attempt, and the workflow does not remain falsely marked as `DONE`

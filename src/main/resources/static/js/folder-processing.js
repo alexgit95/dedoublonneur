@@ -9,6 +9,10 @@ function initFolderProcessing(jobId, root = document) {
   const statusMessage = root.querySelector("#status-message");
   const recapSection = root.querySelector("#recap");
   const progressBar = root.querySelector("#progress-bar");
+  const previewButton = root.querySelector("#preview-processing");
+  const previewSection = root.querySelector("#processing-preview");
+  const progressFill = root.querySelector("#processing-progress-fill");
+  const progressLabel = root.querySelector("#processing-progress-label");
 
   async function startProcessing(outputFolderName) {
     const response = await fetch(`/api/jobs/${jobId}/process`, {
@@ -26,11 +30,31 @@ function initFolderProcessing(jobId, root = document) {
     while (true) {
       const response = await fetch(`/api/workflow/status`);
       const status = await response.json();
+      const progressResponse = await fetch(`/api/jobs/${jobId}/processing-progress`);
+      if (progressResponse.ok) {
+        const progress = await progressResponse.json();
+        progressFill.style.width = `${progress.progressPercent}%`;
+        progressLabel.hidden = false;
+        progressLabel.textContent = `${progress.processedItems} / ${progress.totalItems} elements traites (${progress.progressPercent} %) - ${DedoublonneurUI.formatBytes(progress.bytesCopied)} copies`;
+      }
       if (status.status === "DONE" || status.lastCompletedJobId === Number(jobId)) {
         return;
       }
+      if (status.status === "CANCELLED") throw new Error("Le traitement a ete annule.");
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
+  }
+
+  async function loadPreview() {
+    const response = await fetch(`/api/jobs/${jobId}/process-preview`);
+    if (!response.ok) throw new Error("Impossible de calculer le recapitulatif.");
+    const preview = await response.json();
+    root.querySelector("#preview-kept").textContent = preview.keptPhotoCount;
+    root.querySelector("#preview-deleted").textContent = preview.deletedPhotoCount;
+    root.querySelector("#preview-videos").textContent = preview.videoCount;
+    root.querySelector("#preview-kept-bytes").textContent = DedoublonneurUI.formatBytes(preview.keptBytes);
+    root.querySelector("#preview-saved-bytes").textContent = DedoublonneurUI.formatBytes(preview.estimatedSavedBytes);
+    previewSection.hidden = false;
   }
 
   async function loadRecap() {
@@ -56,6 +80,9 @@ function initFolderProcessing(jobId, root = document) {
     processButton.disabled = true;
     statusMessage.textContent = "Traitement en cours...";
     progressBar.hidden = false;
+    progressFill.style.width = "0%";
+    progressLabel.hidden = false;
+    progressLabel.textContent = "0 / 0 elements traites (0 %)";
     try {
       await startProcessing(outputFolderInput.value.trim());
       window.dispatchEvent(new CustomEvent("workflow-processing-started"));
@@ -68,8 +95,13 @@ function initFolderProcessing(jobId, root = document) {
     } finally {
       processButton.disabled = false;
       progressBar.hidden = true;
+      progressLabel.hidden = true;
     }
   });
+
+  previewButton.addEventListener("click", () => loadPreview().catch((error) => {
+    statusMessage.textContent = `Echec du calcul : ${error.message}`;
+  }));
 
   return { loadRecap };
 }

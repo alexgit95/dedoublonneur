@@ -130,6 +130,31 @@ class FolderProcessingServiceTest {
     }
 
     @Test
+    void previewCalculatesSavingsWithoutCreatingOutput(@TempDir Path root) throws IOException {
+        Path sourceDir = Files.createDirectories(root.resolve("source"));
+        Path kept = sourceDir.resolve("kept.jpg");
+        Path deleted = sourceDir.resolve("deleted.jpg");
+        Files.writeString(kept, "1234567890");
+        Files.writeString(deleted, "12345");
+        Files.writeString(sourceDir.resolve("video.mp4"), "video");
+
+        AnalysisJob job = createReadyJob(sourceDir);
+        photoAssetRepository.save(new PhotoAsset(job, "kept.jpg", 10L, 100.0, 1L, false));
+        photoAssetRepository.save(new PhotoAsset(job, "deleted.jpg", 5L, 1.0, 2L, true));
+
+        ProcessingPreviewResponse preview = folderProcessingService.preview(job.getId());
+
+        assertThat(preview.keptPhotoCount()).isEqualTo(1);
+        assertThat(preview.deletedPhotoCount()).isEqualTo(1);
+        assertThat(preview.videoCount()).isEqualTo(1);
+        assertThat(preview.sourceBytes()).isEqualTo(20L);
+        assertThat(preview.keptBytes()).isEqualTo(10L);
+        assertThat(preview.estimatedSavedBytes()).isEqualTo(5L);
+        assertThat(root.resolve("output")).doesNotExist();
+        assertThat(jobRepository.findById(job.getId()).orElseThrow().getStatus()).isEqualTo(JobStatus.READY_FOR_REVIEW);
+    }
+
+    @Test
     void copiesKeptPhotoPreservingMetadataAndLeavesSourceUntouched(@TempDir Path root) throws IOException {
         Path sourceDir = Files.createDirectories(root.resolve("source"));
         Path photo = sourceDir.resolve("IMG_1.jpg");
@@ -145,6 +170,8 @@ class FolderProcessingServiceTest {
 
         Path copied = outputDir.resolve("IMG_1.jpg");
         assertThat(copied).exists();
+        assertThat(folderProcessingService.progress(job.getId()).status()).isEqualTo("DONE");
+        assertThat(folderProcessingService.progress(job.getId()).progressPercent()).isEqualTo(100);
         assertThat(Files.readString(copied)).isEqualTo("contenu-photo-simulee");
         BasicFileAttributes copiedAttrs = Files.readAttributes(copied, BasicFileAttributes.class);
         assertThat(copiedAttrs.lastModifiedTime()).isEqualTo(originalModifiedTime);

@@ -1,6 +1,7 @@
 package fr.dedoublonneur.processing;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -45,16 +46,19 @@ public class FolderProcessingService {
     private final DuplicateClusterService duplicateClusterService;
     private final ThumbnailService thumbnailService;
     private final AppProperties appProperties;
+    private final ProcessingProgressRegistry progressRegistry;
 
     public FolderProcessingService(AnalysisJobRepository jobRepository, PhotoAssetRepository photoAssetRepository,
             ProcessingResultRepository processingResultRepository, DuplicateClusterService duplicateClusterService,
-            ThumbnailService thumbnailService, AppProperties appProperties) {
+            ThumbnailService thumbnailService, AppProperties appProperties,
+            ProcessingProgressRegistry progressRegistry) {
         this.jobRepository = jobRepository;
         this.photoAssetRepository = photoAssetRepository;
         this.processingResultRepository = processingResultRepository;
         this.duplicateClusterService = duplicateClusterService;
         this.thumbnailService = thumbnailService;
         this.appProperties = appProperties;
+        this.progressRegistry = progressRegistry;
     }
 
     /** Valide la demande, verrouille le job en PROCESSING et lance la copie en tache de fond. */
@@ -75,8 +79,50 @@ public class FolderProcessingService {
 
         job.setStatus(JobStatus.PROCESSING);
         jobRepository.save(job);
+        progressRegistry.start(jobId, countProcessingItems(jobId, sourceFolderPath));
 
         processFolderAsync(jobId, sourceFolderPath, outputDir.toString());
+    }
+
+    public ProcessingPreviewResponse preview(Long jobId) {
+        AnalysisJob job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
+        if (job.getStatus() != JobStatus.READY_FOR_REVIEW) {
+            throw new ProcessingNotAllowedException(
+                    "Le job " + jobId + " n'est pas en revue (statut actuel: " + job.getStatus() + ").");
+        }
+        String sourceFolderPath = jobRepository.findEventFolderPathByJobId(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+        Path sourceDir = Path.of(sourceFolderPath);
+        long sourceBytes = 0;
+        long keptBytes = 0;
+        long savedBytes = 0;
+        int kept = 0;
+        int deleted = 0;
+        try {
+            for (PhotoAsset photo : photoAssetRepository.findByJobId(jobId)) {
+                long size = Files.exists(sourceDir.resolve(photo.getRelativePath()))
+                        ? Files.size(sourceDir.resolve(photo.getRelativePath())) : photo.getFileSize();
+                sourceBytes += size;
+                if (photo.isMarkedForDeletion()) {
+                    deleted++;
+                    savedBytes += size;
+                } else {
+                    kept++;
+                    keptBytes += size;
+                }
+            }
+            int videoCount = listVideoFiles(sourceDir).size();
+            for (String video : listVideoFiles(sourceDir)) {
+                sourceBytes += Files.size(sourceDir.resolve(video));
+            }
+            return new ProcessingPreviewResponse(kept, deleted, videoCount, sourceBytes, keptBytes, savedBytes);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public ProcessingProgressResponse progress(Long jobId) {
+        return progressRegistry.get(jobId);
     }
 
     @Async(AsyncConfig.ANALYSIS_EXECUTOR)
@@ -90,6 +136,7 @@ public class FolderProcessingService {
                 job.setFinishedAt(Instant.now());
                 jobRepository.save(job);
             });
+            progressRegistry.cancel(jobId);
         }
     }
 
@@ -98,6 +145,9 @@ public class FolderProcessingService {
         AnalysisJob job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
         Path sourceDir = Path.of(sourceFolderPath);
         Path outputDir = Path.of(outputFolderPath);
+        if (progressRegistry.get(jobId).totalItems() == 0) {
+            progressRegistry.start(jobId, countProcessingItems(jobId, sourceFolderPath));
+        }
         Files.createDirectories(outputDir);
 
         long spaceBefore = 0;
@@ -111,11 +161,13 @@ public class FolderProcessingService {
             spaceBefore += size;
             if (photo.isMarkedForDeletion()) {
                 deleted++;
+                progressRegistry.itemProcessed(jobId, 0);
                 continue;
             }
             copyPreservingMetadata(source, outputDir.resolve(photo.getRelativePath()));
             spaceAfter += size;
             kept++;
+            progressRegistry.itemProcessed(jobId, size);
         }
 
         int videoCount = 0;
@@ -126,6 +178,7 @@ public class FolderProcessingService {
             copyPreservingMetadata(source, outputDir.resolve(videoFile));
             spaceAfter += size;
             videoCount++;
+            progressRegistry.itemProcessed(jobId, size);
         }
 
         processingResultRepository.save(
@@ -134,6 +187,7 @@ public class FolderProcessingService {
         job.setStatus(JobStatus.DONE);
         job.setFinishedAt(Instant.now());
         jobRepository.save(job);
+        progressRegistry.complete(jobId);
 
         thumbnailService.purge(jobId);
         duplicateClusterService.evictJob(jobId);
@@ -154,6 +208,15 @@ public class FolderProcessingService {
                     .filter(FolderProcessingService::isVideo)
                     .map(path -> path.getFileName().toString())
                     .toList();
+        }
+    }
+
+    private int countProcessingItems(Long jobId, String sourceFolderPath) {
+        try {
+            return photoAssetRepository.findByJobId(jobId).size()
+                    + listVideoFiles(Path.of(sourceFolderPath)).size();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

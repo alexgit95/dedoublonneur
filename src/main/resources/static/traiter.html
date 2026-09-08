@@ -23,10 +23,23 @@
       <button id="process-button" type="submit">Traiter le dossier</button>
     </form>
 
+    <button id="preview-processing" type="button">Calculer le recapitulatif</button>
+    <section id="processing-preview" class="processing-preview" hidden aria-live="polite">
+      <h2>Estimation avant traitement</h2>
+      <dl>
+        <dt>Photos conservees</dt><dd id="preview-kept"></dd>
+        <dt>Photos supprimees</dt><dd id="preview-deleted"></dd>
+        <dt>Videos copiees</dt><dd id="preview-videos"></dd>
+        <dt>Taille conservee</dt><dd id="preview-kept-bytes"></dd>
+        <dt>Economie estimee</dt><dd id="preview-saved-bytes"></dd>
+      </dl>
+    </section>
+
     <p id="status-message" role="status"></p>
     <div id="progress-bar" class="progress-bar" hidden>
-      <div class="progress-bar__fill"></div>
+      <div id="processing-progress-fill" class="progress-bar__fill"></div>
     </div>
+    <p id="processing-progress-label" class="status-message" hidden></p>
 
     <section id="recap" class="recap" hidden>
       <h2>Recapitulatif</h2>

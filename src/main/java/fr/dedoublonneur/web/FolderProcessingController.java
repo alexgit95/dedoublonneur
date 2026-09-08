@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fr.dedoublonneur.domain.ProcessingResultRepository;
 import fr.dedoublonneur.processing.FolderProcessingService;
+import fr.dedoublonneur.processing.ProcessingPreviewResponse;
+import fr.dedoublonneur.processing.ProcessingProgressResponse;
 import fr.dedoublonneur.processing.ProcessingResultNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -44,6 +46,22 @@ public class FolderProcessingController {
         folderProcessingService.startProcessing(id, request.outputFolderName());
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
+
+        @GetMapping(value = "/api/jobs/{id}/process-preview", produces = MediaType.APPLICATION_JSON_VALUE)
+        @Operation(summary = "Calculer le recapitulatif avant traitement",
+                        description = "Calcule les volumes conserves, supprimes et economises sans copier ni modifier le dossier source.")
+        @ApiResponse(responseCode = "200", description = "Estimation de traitement disponible")
+        public ProcessingPreviewResponse preview(@PathVariable Long id) {
+                return folderProcessingService.preview(id);
+        }
+
+        @GetMapping(value = "/api/jobs/{id}/processing-progress", produces = MediaType.APPLICATION_JSON_VALUE)
+        @Operation(summary = "Consulter la progression du traitement",
+                        description = "Retourne les elements traites, le total, le pourcentage et les octets copies.")
+        @ApiResponse(responseCode = "200", description = "Progression disponible")
+        public ProcessingProgressResponse progress(@PathVariable Long id) {
+                return folderProcessingService.progress(id);
+        }
 
     @GetMapping(value = "/api/jobs/{id}/result", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Consulter le recapitulatif de traitement",

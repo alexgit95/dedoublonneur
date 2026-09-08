@@ -21,7 +21,7 @@ The system SHALL list the sub-folders (events) available under the configured NA
 - **THEN** the system displays the current workflow and directs the user to resume it instead of presenting a second selectable workflow
 
 ### Requirement: Single active workflow lock
-The system SHALL allow at most one active workflow (analysis, review, or processing) at any time across the whole application. A workflow is considered active from the moment analysis starts until the folder has been fully processed (or the workflow is explicitly cancelled/reset).
+The system SHALL allow at most one active workflow (analysis, review, or processing) at any time across the whole application. A workflow is considered active from the moment analysis starts until the folder has been fully processed (or the workflow is explicitly cancelled/reset). Jobs in `DONE` or `CANCELLED` SHALL never block a new analysis.
 
 #### Scenario: Attempt to start a second analysis while one is active
 - **WHEN** a user requests to start analysis on a new event folder while another workflow is in status `ANALYZING`, `READY_FOR_REVIEW`, or `PROCESSING`
@@ -30,6 +30,10 @@ The system SHALL allow at most one active workflow (analysis, review, or process
 #### Scenario: Starting a new analysis after the previous workflow is done
 - **WHEN** the previous workflow has reached status `DONE` (fully processed) or has been cancelled/reset
 - **THEN** the system allows a new event folder to be selected and analyzed
+
+#### Scenario: Two clients start concurrently after completion
+- **WHEN** two clients request analysis after the previous job is `DONE`
+- **THEN** exactly one new analysis starts and the other receives HTTP 409 because the new workflow is genuinely active
 
 ### Requirement: Workflow state machine
 The system SHALL track and expose the current workflow status as one of: `IDLE`, `ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`, `DONE`, and the user interface SHALL map each status to the corresponding workflow step. The system SHALL expose a confirmed reset action only while the status is `ANALYZING` or `READY_FOR_REVIEW`; the reset SHALL return the workflow to `IDLE` after server-side cleanup and SHALL not be available during `PROCESSING`.
