@@ -15,13 +15,13 @@ import fr.dedoublonneur.domain.AnalysisJob;
 import fr.dedoublonneur.domain.AnalysisJobRepository;
 
 /**
- * Construit l'instantane (snapshot) fige des photos JPEG d'un dossier evenement au
+ * Construit l'instantane (snapshot) fige des photos JPEG ou PNG d'un dossier evenement au
  * demarrage du job, puis declenche le traitement en tache de fond (design.md decision 5).
  */
 @Service
 public class AnalysisOrchestrator {
 
-    private static final List<String> JPEG_EXTENSIONS = List.of(".jpg", ".jpeg");
+    private static final List<String> PHOTO_EXTENSIONS = List.of(".jpg", ".jpeg", ".png");
 
     private final AnalysisJobRepository jobRepository;
     private final PhotoAnalysisRunner photoAnalysisRunner;
@@ -37,19 +37,19 @@ public class AnalysisOrchestrator {
         // on relit le chemin dossier via une requete dediee plutot que job.getEvent().
         String folderPath = jobRepository.findEventFolderPathByJobId(job.getId())
                 .orElseThrow(() -> new JobNotFoundException(job.getId()));
-        List<String> snapshot = listJpegFiles(Path.of(folderPath));
+        List<String> snapshot = listPhotoFiles(Path.of(folderPath));
         job.setSnapshot(snapshot);
         jobRepository.save(job);
         photoAnalysisRunner.runAnalysisAsync(job.getId());
     }
 
-    private List<String> listJpegFiles(Path folder) {
+    static List<String> listPhotoFiles(Path folder) {
         if (!Files.isDirectory(folder)) {
             return List.of();
         }
         try (Stream<Path> entries = Files.list(folder)) {
             return entries.filter(Files::isRegularFile)
-                    .filter(AnalysisOrchestrator::isJpeg)
+                    .filter(AnalysisOrchestrator::isPhoto)
                     .map(path -> path.getFileName().toString())
                     .sorted(Comparator.naturalOrder())
                     .toList();
@@ -58,8 +58,8 @@ public class AnalysisOrchestrator {
         }
     }
 
-    private static boolean isJpeg(Path path) {
+    static boolean isPhoto(Path path) {
         String lower = path.getFileName().toString().toLowerCase(Locale.ROOT);
-        return JPEG_EXTENSIONS.stream().anyMatch(lower::endsWith);
+        return PHOTO_EXTENSIONS.stream().anyMatch(lower::endsWith);
     }
 }

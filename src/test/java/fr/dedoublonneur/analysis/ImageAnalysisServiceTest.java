@@ -58,6 +58,35 @@ class ImageAnalysisServiceTest {
         assertThat(ImageAnalysisService.hammingDistance(checkerboardHash, invertedHash)).isGreaterThan(32);
     }
 
+    @Test
+    void burstImagesAreCloserThanDifferentScenes(@TempDir Path tempDir) throws IOException {
+        Path burstA = tempDir.resolve("burst-a.png");
+        Path burstB = tempDir.resolve("burst-b.png");
+        Path differentScene = tempDir.resolve("different-scene.png");
+        writePng(burstA, burstImage(0));
+        writePng(burstB, burstImage(4));
+        writePng(differentScene, differentSceneImage());
+
+        long burstHashA = service.analyze(burstA).pHash();
+        long burstHashB = service.analyze(burstB).pHash();
+        long differentHash = service.analyze(differentScene).pHash();
+
+        int burstDistance = ImageAnalysisService.hammingDistance(burstHashA, burstHashB);
+        int differentDistance = ImageAnalysisService.hammingDistance(burstHashA, differentHash);
+        assertThat(burstDistance).isLessThan(differentDistance);
+    }
+
+    @Test
+    void pngImageProducesBlurScoreAndPerceptualHash(@TempDir Path tempDir) throws IOException {
+        Path pngFile = tempDir.resolve("photo.PNG");
+        writePng(pngFile, burstImage(0));
+
+        PhotoAnalysisResult result = service.analyze(pngFile);
+
+        assertThat(result.blurScore()).isGreaterThan(0);
+        assertThat(result.pHash()).isNotZero();
+    }
+
     private static BufferedImage checkerboardImage(boolean inverted) {
         BufferedImage image = new BufferedImage(256, 256, BufferedImage.TYPE_INT_RGB);
         for (int y = 0; y < 256; y++) {
@@ -71,6 +100,34 @@ class ImageAnalysisServiceTest {
 
     private static void writeJpeg(Path file, BufferedImage image) throws IOException {
         ImageIO.write(image, "jpg", file.toFile());
+    }
+
+    private static void writePng(Path file, BufferedImage image) throws IOException {
+        ImageIO.write(image, "png", file.toFile());
+    }
+
+    private static BufferedImage burstImage(int offset) {
+        BufferedImage image = solidColorImage(new Color(160, 190, 215));
+        Graphics2D g = image.createGraphics();
+        g.setColor(new Color(45, 75, 105));
+        g.fillRect(24 + offset, 70, 56, 105);
+        g.setColor(new Color(235, 190, 110));
+        g.fillOval(120 + offset, 82, 48, 48);
+        g.setColor(new Color(55, 125, 75));
+        g.fillRect(175, 160, 55, 35);
+        g.dispose();
+        return image;
+    }
+
+    private static BufferedImage differentSceneImage() {
+        BufferedImage image = solidColorImage(new Color(215, 175, 145));
+        Graphics2D g = image.createGraphics();
+        g.setColor(new Color(95, 45, 35));
+        g.fillRect(35, 35, 180, 45);
+        g.setColor(new Color(35, 85, 135));
+        g.fillOval(70, 115, 120, 80);
+        g.dispose();
+        return image;
     }
 
     private static BufferedImage sharpNoiseImage() {

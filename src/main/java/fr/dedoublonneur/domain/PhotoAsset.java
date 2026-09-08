@@ -13,7 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * Photo JPEG d'un {@link AnalysisJob} avec son score de nettete et son hash perceptuel.
+ * Photo JPEG ou PNG d'un {@link AnalysisJob} avec son score de nettete et son hash perceptuel.
  * Les groupes de doublons ne sont jamais persistes : seul le pHash brut l'est,
  * le regroupement etant recalcule a la demande (cf. design.md decision 3).
  */

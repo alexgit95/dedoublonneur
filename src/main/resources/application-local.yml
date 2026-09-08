@@ -2,8 +2,10 @@
 spring:
   datasource:
     # Pas de sous-dossier : le pilote SQLite cree le fichier mais jamais les repertoires parents.
-    url: jdbc:sqlite:${APP_SQLITE_PATH:./dedoublonneur-local.db}
+    url: jdbc:sqlite:${APP_SQLITE_PATH:./dedoublonneur-local.db}?busy_timeout=30000&synchronous=NORMAL
     driver-class-name: org.sqlite.JDBC
+    hikari:
+      connection-timeout: 15000
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
@@ -11,8 +13,8 @@ spring:
 
 app:
   nas:
-    source-path: ${APP_NAS_SOURCE_PATH:./nas-mount/source}
-    output-path: ${APP_NAS_OUTPUT_PATH:./nas-mount/output}
+    source-path: ${APP_NAS_SOURCE_PATH:C:\Users\bourgois_a\Pictures}
+    output-path: ${APP_NAS_OUTPUT_PATH:C:\Users\bourgois_a\Pictures}
 
 logging:
   level:

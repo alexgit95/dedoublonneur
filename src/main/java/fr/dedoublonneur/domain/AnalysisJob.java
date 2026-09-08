@@ -43,7 +43,7 @@ public class AnalysisJob {
     private int snapshotSize;
 
     /**
-     * Liste figee (chemins relatifs, separes par des sauts de ligne) des fichiers JPEG
+    * Liste figee (chemins relatifs, separes par des sauts de ligne) des fichiers photo JPEG ou PNG
      * a analyser, constituee au demarrage du job : les fichiers ajoutes ensuite dans le
      * dossier source sont ignores (cf. photo-analysis spec, "Snapshot of files").
      */

@@ -5,14 +5,15 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
 import org.springframework.stereotype.Service;
 
 /**
- * Calcule, pour une photo JPEG, un score de nettete (variance du Laplacien sur une
- * version reduite en niveaux de gris) et un hash perceptuel (average-hash 8x8 -> 64 bits).
+ * Calcule, pour une photo JPEG ou PNG, un score de nettete (variance du Laplacien sur une
+ * version reduite en niveaux de gris) et un hash perceptuel DCT 64 bits.
  * Ne lit jamais que les pixels : le fichier source n'est jamais reecrit (design.md decision 4/6).
  */
 @Service
@@ -21,8 +22,9 @@ public class ImageAnalysisService {
     /** Grille utilisee pour le score de nettete : suffisamment petite pour rester tres peu couteuse. */
     private static final int BLUR_GRID_SIZE = 64;
 
-    /** Grille 8x8 = 64 pixels, un par bit du hash perceptuel (long). */
-    private static final int HASH_GRID_SIZE = 8;
+    private static final int HASH_DCT_SIZE = 32;
+    private static final int HASH_LOW_FREQUENCY_SIZE = 9;
+    private static final int HASH_BITS = 64;
 
     private static final int[][] LAPLACIAN_KERNEL = {
             { 0, 1, 0 },
@@ -37,7 +39,7 @@ public class ImageAnalysisService {
         }
 
         double blurScore = computeBlurScore(toGrayscale(original, BLUR_GRID_SIZE, BLUR_GRID_SIZE));
-        long pHash = computeAverageHash(toGrayscale(original, HASH_GRID_SIZE, HASH_GRID_SIZE));
+        long pHash = computeDctHash(toGrayscale(original, HASH_DCT_SIZE, HASH_DCT_SIZE));
         return new PhotoAnalysisResult(blurScore, pHash);
     }
 
@@ -79,28 +81,55 @@ public class ImageAnalysisService {
         return variance / laplacian.length;
     }
 
-    /** Average-hash : 1 bit par pixel selon qu'il est au-dessus ou en-dessous de la moyenne de l'image reduite. */
-    private long computeAverageHash(BufferedImage gray) {
-        int width = gray.getWidth();
-        int height = gray.getHeight();
-        int[] levels = new int[width * height];
-        long total = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int level = grayLevel(gray, x, y);
-                levels[y * width + x] = level;
-                total += level;
+    private long computeDctHash(BufferedImage gray) {
+        double[][] cosine = new double[HASH_DCT_SIZE][HASH_LOW_FREQUENCY_SIZE];
+        for (int pixel = 0; pixel < HASH_DCT_SIZE; pixel++) {
+            for (int frequency = 0; frequency < HASH_LOW_FREQUENCY_SIZE; frequency++) {
+                cosine[pixel][frequency] = Math.cos((2 * pixel + 1) * frequency * Math.PI
+                        / (2 * HASH_DCT_SIZE));
             }
         }
-        double mean = (double) total / levels.length;
 
+        double[] selected = new double[HASH_BITS];
+        int selectedCount = 0;
+        for (int frequency = 1; frequency <= 2 * (HASH_LOW_FREQUENCY_SIZE - 1)
+                && selectedCount < HASH_BITS; frequency++) {
+            for (int yFrequency = 0; yFrequency < HASH_LOW_FREQUENCY_SIZE; yFrequency++) {
+                int xFrequency = frequency - yFrequency;
+                if (xFrequency < 0 || xFrequency >= HASH_LOW_FREQUENCY_SIZE
+                        || (xFrequency == 0 && yFrequency == 0)) {
+                    continue;
+                }
+                selected[selectedCount++] = dctCoefficient(gray, xFrequency, yFrequency, cosine);
+                if (selectedCount == HASH_BITS) {
+                    break;
+                }
+            }
+        }
+
+        double[] sorted = selected.clone();
+        Arrays.sort(sorted);
+        double median = (sorted[HASH_BITS / 2 - 1] + sorted[HASH_BITS / 2]) / 2.0;
         long hash = 0L;
-        for (int i = 0; i < levels.length; i++) {
-            if (levels[i] >= mean) {
-                hash |= (1L << i);
+        for (int i = 0; i < HASH_BITS; i++) {
+            if (selected[i] > median) {
+                hash |= 1L << i;
             }
         }
         return hash;
+    }
+
+    private double dctCoefficient(BufferedImage gray, int xFrequency, int yFrequency, double[][] cosine) {
+        int size = gray.getWidth();
+        double coefficient = 0;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                coefficient += grayLevel(gray, x, y)
+                        * cosine[x][xFrequency]
+                        * cosine[y][yFrequency];
+            }
+        }
+        return coefficient;
     }
 
     private int grayLevel(BufferedImage gray, int x, int y) {

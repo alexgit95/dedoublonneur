@@ -1,35 +1,4 @@
-# event-folder-workflow Specification
-
-## Purpose
-TBD - created by archiving change add-photo-culling-workflow. Update Purpose after archive.
-
-## Requirements
-
-### Requirement: Event folder listing and selection
-The system SHALL list the sub-folders (events) available under the configured NAS source mount, SHALL allow the user to select exactly one event folder to start an analysis, and SHALL expose this flow from the root landing page.
-
-#### Scenario: User lists available event folders
-- **WHEN** the user opens the root landing page while no workflow is active
-- **THEN** the system displays the list of sub-folder names found directly under the NAS source mount
-
-#### Scenario: User selects a folder to analyze
-- **WHEN** the user selects an event folder and confirms from the root landing page
-- **THEN** the system creates a new analysis workflow scoped to that folder, starts the background analysis, and opens the analysis step in the unified workflow screen
-
-#### Scenario: User attempts to select another folder during an active workflow
-- **WHEN** the user opens the root landing page while a workflow is active
-- **THEN** the system displays the current workflow and directs the user to resume it instead of presenting a second selectable workflow
-
-### Requirement: Single active workflow lock
-The system SHALL allow at most one active workflow (analysis, review, or processing) at any time across the whole application. A workflow is considered active from the moment analysis starts until the folder has been fully processed (or the workflow is explicitly cancelled/reset).
-
-#### Scenario: Attempt to start a second analysis while one is active
-- **WHEN** a user requests to start analysis on a new event folder while another workflow is in status `ANALYZING`, `READY_FOR_REVIEW`, or `PROCESSING`
-- **THEN** the system rejects the request and indicates which folder is currently being worked on
-
-#### Scenario: Starting a new analysis after the previous workflow is done
-- **WHEN** the previous workflow has reached status `DONE` (fully processed) or has been cancelled/reset
-- **THEN** the system allows a new event folder to be selected and analyzed
+## MODIFIED Requirements
 
 ### Requirement: Workflow state machine
 The system SHALL track and expose the current workflow status as one of: `IDLE`, `ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`, `DONE`, and the user interface SHALL map each status to the corresponding workflow step. The system SHALL expose a confirmed reset action only while the status is `ANALYZING` or `READY_FOR_REVIEW`; the reset SHALL return the workflow to `IDLE` after server-side cleanup and SHALL not be available during `PROCESSING`.
@@ -62,5 +31,5 @@ The system SHALL track and expose the current workflow status as one of: `IDLE`,
 The system SHALL allow the user to manually reset the currently active workflow only from `ANALYZING` or `READY_FOR_REVIEW`, releasing the single global lock only after the analysis runner has stopped (when applicable) and the job's persisted analysis data and temporary caches have been cleaned.
 
 #### Scenario: User cancels an active workflow
-- **WHEN** the user triggers cancel/reset on the currently active workflow
+- **WHEN** the user confirms cancel/reset on a workflow in `ANALYZING` or `READY_FOR_REVIEW`
 - **THEN** the workflow status returns to `IDLE`, the cancelled job remains as `CANCELLED` history, its `PhotoAsset` records are removed, its thumbnails and duplicate cache are purged, and a new event folder can be selected

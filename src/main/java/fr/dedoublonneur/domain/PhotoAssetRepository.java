@@ -17,4 +17,7 @@ public interface PhotoAssetRepository extends JpaRepository<PhotoAsset, Long> {
 
     @Transactional(readOnly = true)
     long countByJobId(Long jobId);
+
+    @Transactional
+    long deleteByJobId(Long jobId);
 }

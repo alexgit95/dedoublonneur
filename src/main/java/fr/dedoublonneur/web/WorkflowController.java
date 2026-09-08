@@ -33,12 +33,13 @@ public class WorkflowController {
     }
 
     @PostMapping(value = "/cancel", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Annuler/reinitialiser le workflow actif",
-            description = "Libere manuellement le verrou global en annulant le workflow actif, permettant de "
-                    + "selectionner un nouveau dossier evenement.")
+        @Operation(summary = "Reinitialiser le workflow pendant l'analyse ou la revue",
+            description = "Arrete proprement une analyse en cours ou supprime les resultats d'une revue, purge les "
+                + "donnees temporaires et libere le verrou pour selectionner un nouveau dossier. Indisponible "
+                + "pendant le traitement d'export.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Workflow annule, retour a l'etat IDLE"),
-            @ApiResponse(responseCode = "409", description = "Aucun workflow actif a annuler")
+            @ApiResponse(responseCode = "200", description = "Workflow reinitialise, retour a l'etat IDLE"),
+            @ApiResponse(responseCode = "409", description = "Reset indisponible ou aucun workflow actif")
     })
     public WorkflowStatus cancel() {
         return workflowStateService.cancelActiveWorkflow();

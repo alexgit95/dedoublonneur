@@ -24,6 +24,7 @@
   const analysisProgressLabel = document.getElementById("analysis-progress-label");
   const reviewTabs = [...document.querySelectorAll("[data-review-tab]")];
   const reviewPanels = [...document.querySelectorAll("[data-review-panel]")];
+  const resetButtons = [...document.querySelectorAll("[data-workflow-reset]")];
 
   function accessibleSteps() {
     if (state.status === "IDLE") return ["folder"];
@@ -65,6 +66,9 @@
       button.classList.toggle("is-complete", index < currentIndex);
       button.disabled = !available.includes(step);
       button.setAttribute("aria-current", step === currentStep ? "step" : "false");
+    });
+    resetButtons.forEach((button) => {
+      button.hidden = !["ANALYZING", "READY_FOR_REVIEW"].includes(state.status);
     });
   }
 
@@ -227,20 +231,65 @@
     }
   }
 
-  stepper.forEach((button) => button.addEventListener("click", () => showStep(button.dataset.step)));
-  reviewTabs.forEach((tab) => tab.addEventListener("click", () => selectReviewTab(tab.dataset.reviewTab)));
-  startAnalysisButton.addEventListener("click", () => startAnalysis().catch((error) => setWorkflowMessage(error.message)));
-  resumeAnalysisButton.addEventListener("click", () => resumeAnalysis().catch((error) => setWorkflowMessage(error.message)));
-  document.getElementById("open-export").addEventListener("click", () => showStep("export"));
-  document.getElementById("new-workflow").addEventListener("click", () => {
+  async function resetWorkflow() {
+    if (!["ANALYZING", "READY_FOR_REVIEW"].includes(state.status)) return;
+    const confirmed = window.confirm(
+      "Reinitialiser ce workflow ? Les analyses, les vignettes et les choix de revue seront supprimes.",
+    );
+    if (!confirmed) return;
+
+    resetButtons.forEach((button) => { button.disabled = true; });
+    setWorkflowMessage("Reinitialisation en cours...");
+    const response = await fetch("/api/workflow/cancel", { method: "POST" });
+    if (!response.ok) {
+      resetButtons.forEach((button) => { button.disabled = false; });
+      setWorkflowMessage("Impossible de reinitialiser le workflow en toute securite.");
+      return;
+    }
+
+    clearPoll();
     state.status = "IDLE";
     state.jobId = null;
     state.folderName = null;
     state.reviewInitialized = false;
     state.processingInitialized = false;
     state.processingController = null;
+    resetButtons.forEach((button) => { button.disabled = false; });
     updateUrl();
-    syncStatus().catch((error) => setWorkflowMessage(error.message));
+    await syncStatus();
+  }
+
+  stepper.forEach((button) => button.addEventListener("click", () => showStep(button.dataset.step)));
+  reviewTabs.forEach((tab) => tab.addEventListener("click", () => selectReviewTab(tab.dataset.reviewTab)));
+  startAnalysisButton.addEventListener("click", () => startAnalysis().catch((error) => setWorkflowMessage(error.message)));
+  resumeAnalysisButton.addEventListener("click", () => resumeAnalysis().catch((error) => setWorkflowMessage(error.message)));
+  resetButtons.forEach((button) => {
+    button.addEventListener("click", () => resetWorkflow().catch((error) => {
+      resetButtons.forEach((resetButton) => { resetButton.disabled = false; });
+      setWorkflowMessage(error.message);
+    }));
+  });
+  document.getElementById("open-export").addEventListener("click", () => {
+    initializeProcessing();
+    showStep("export");
+  });
+  document.getElementById("new-workflow").addEventListener("click", () => {
+    clearPoll();
+    state.status = "IDLE";
+    state.jobId = null;
+    state.folderName = null;
+    state.reviewInitialized = false;
+    state.processingInitialized = false;
+    state.processingController = null;
+    document.getElementById("process-form").hidden = false;
+    document.getElementById("new-workflow").hidden = true;
+    document.getElementById("recap").hidden = true;
+    document.getElementById("status-message").textContent = "";
+    document.getElementById("output-folder-name").value = "";
+    updateUrl();
+    showStep("folder");
+    setWorkflowMessage("Choisissez un dossier pour commencer.");
+    loadFolders().catch((error) => setWorkflowMessage(error.message));
   });
 
   window.addEventListener("workflow-processing-started", () => {

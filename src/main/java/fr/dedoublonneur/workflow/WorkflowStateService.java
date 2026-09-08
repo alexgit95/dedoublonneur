@@ -14,6 +14,11 @@ import fr.dedoublonneur.domain.AnalysisJobRepository;
 import fr.dedoublonneur.domain.Event;
 import fr.dedoublonneur.domain.EventRepository;
 import fr.dedoublonneur.domain.JobStatus;
+import fr.dedoublonneur.domain.PhotoAssetRepository;
+import fr.dedoublonneur.analysis.DuplicateClusterService;
+import fr.dedoublonneur.analysis.PhotoAnalysisRunner;
+import fr.dedoublonneur.analysis.ThumbnailService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Point d'entree unique pour la contrainte "un seul workflow actif a la fois"
@@ -29,12 +34,22 @@ public class WorkflowStateService {
     private final AnalysisJobRepository jobRepository;
     private final EventRepository eventRepository;
     private final AppProperties appProperties;
+    private final PhotoAssetRepository photoAssetRepository;
+    private final PhotoAnalysisRunner photoAnalysisRunner;
+    private final ThumbnailService thumbnailService;
+    private final DuplicateClusterService duplicateClusterService;
 
     public WorkflowStateService(AnalysisJobRepository jobRepository, EventRepository eventRepository,
-            AppProperties appProperties) {
+            AppProperties appProperties, PhotoAssetRepository photoAssetRepository,
+            PhotoAnalysisRunner photoAnalysisRunner, ThumbnailService thumbnailService,
+            DuplicateClusterService duplicateClusterService) {
         this.jobRepository = jobRepository;
         this.eventRepository = eventRepository;
         this.appProperties = appProperties;
+        this.photoAssetRepository = photoAssetRepository;
+        this.photoAnalysisRunner = photoAnalysisRunner;
+        this.thumbnailService = thumbnailService;
+        this.duplicateClusterService = duplicateClusterService;
     }
 
     @Transactional(readOnly = true)
@@ -54,10 +69,10 @@ public class WorkflowStateService {
      * Demarre l'analyse d'un nouveau dossier evenement. Rejette la demande (verrou)
      * si un autre workflow est deja actif.
      */
-    @Transactional
-    public AnalysisJob startAnalysis(String folderName) {
+    public synchronized AnalysisJob startAnalysis(String folderName) {
         findActiveJob().ifPresent(active -> {
-            throw new WorkflowLockedException(active.getEvent().getFolderName());
+            String activeFolderName = jobRepository.findEventFolderNameByJobId(active.getId()).orElse("inconnu");
+            throw new WorkflowLockedException(activeFolderName);
         });
 
         Event event = eventRepository.findByFolderName(folderName)
@@ -70,11 +85,19 @@ public class WorkflowStateService {
     /**
      * Annule/reinitialise manuellement le workflow actif, liberant le verrou global.
      */
-    @Transactional
-    public WorkflowStatus cancelActiveWorkflow() {
+    public synchronized WorkflowStatus cancelActiveWorkflow() {
         AnalysisJob job = findActiveJob().orElseThrow(NoActiveWorkflowException::new);
+        if (job.getStatus() == JobStatus.PROCESSING) {
+            throw new WorkflowResetNotAllowedException();
+        }
+        photoAnalysisRunner.requestCancellation(job.getId());
+        photoAnalysisRunner.awaitCompletion(job.getId(), 10, TimeUnit.SECONDS);
+        photoAssetRepository.deleteByJobId(job.getId());
+        thumbnailService.purge(job.getId());
+        duplicateClusterService.evictJob(job.getId());
         job.setStatus(JobStatus.CANCELLED);
         job.setFinishedAt(Instant.now());
+        jobRepository.save(job);
         return WorkflowStatus.idle();
     }
 

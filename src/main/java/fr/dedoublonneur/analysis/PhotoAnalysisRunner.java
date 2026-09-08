@@ -5,7 +5,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -20,6 +23,7 @@ import fr.dedoublonneur.domain.AnalysisJobRepository;
 import fr.dedoublonneur.domain.JobStatus;
 import fr.dedoublonneur.domain.PhotoAsset;
 import fr.dedoublonneur.domain.PhotoAssetRepository;
+import fr.dedoublonneur.workflow.WorkflowResetException;
 
 /**
  * Traite le snapshot fige d'un {@link AnalysisJob} : calcule blur score + pHash par photo,
@@ -33,6 +37,8 @@ public class PhotoAnalysisRunner {
 
     /** Jobs en cours de traitement dans ce process (perdu au redemarrage -> reprise manuelle requise). */
     private final Set<Long> runningJobIds = ConcurrentHashMap.newKeySet();
+    private final Set<Long> cancellationRequested = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<Long, CompletableFuture<Void>> completionSignals = new ConcurrentHashMap<>();
 
     private final AnalysisJobRepository jobRepository;
     private final PhotoAssetRepository photoAssetRepository;
@@ -58,16 +64,45 @@ public class PhotoAnalysisRunner {
         return runningJobIds.contains(jobId);
     }
 
+    public void requestCancellation(Long jobId) {
+        if (isRunning(jobId)) {
+            cancellationRequested.add(jobId);
+        }
+    }
+
+    public void awaitCompletion(Long jobId, long timeout, TimeUnit unit) {
+        CompletableFuture<Void> completion = completionSignals.get(jobId);
+        if (completion == null) {
+            return;
+        }
+        try {
+            completion.get(timeout, unit);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new WorkflowResetException("Arret de l'analyse interrompu.", e);
+        } catch (TimeoutException e) {
+            throw new WorkflowResetException("L'analyse ne s'est pas arretee dans le delai imparti.", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new WorkflowResetException("Impossible d'arreter l'analyse.", e.getCause());
+        }
+    }
+
     /**
      * Traitement synchrone du snapshot (extrait pour etre appelable directement dans les tests
      * sans passer par le proxy @Async). Ignore les photos deja persistees (reprise).
      */
     public void runAnalysis(Long jobId) {
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        completionSignals.put(jobId, completion);
         if (!runningJobIds.add(jobId)) {
+            completionSignals.remove(jobId, completion);
             return;
         }
         try {
             AnalysisJob job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
+            if (job.getStatus() != JobStatus.ANALYZING) {
+                return;
+            }
             // Requete dediee (pas job.getEvent()) : le job est un objet detache entre chaque
             // courte transaction de cette methode, la lazy association event ne peut pas etre
             // chargee a la demande (pas de session ouverte en dehors des appels repository).
@@ -84,6 +119,9 @@ public class PhotoAnalysisRunner {
             int checkpointBatchSize = appProperties.analysis().checkpointBatchSize();
 
             for (String relativePath : snapshot) {
+                if (cancellationRequested.contains(jobId)) {
+                    return;
+                }
                 if (alreadyAnalyzed.contains(relativePath)) {
                     continue;
                 }
@@ -96,10 +134,16 @@ public class PhotoAnalysisRunner {
             }
 
             checkpoint(job);
+            if (cancellationRequested.contains(jobId)) {
+                return;
+            }
             job.setStatus(JobStatus.READY_FOR_REVIEW);
             jobRepository.save(job);
         } finally {
             runningJobIds.remove(jobId);
+            cancellationRequested.remove(jobId);
+            completionSignals.remove(jobId);
+            completion.complete(null);
         }
     }
 
