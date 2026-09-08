@@ -12,7 +12,9 @@ En profil local, SQLite est configure avec un delai d'attente des verrous de 30 
 
 ## Fonctionnement (workflow)
 
-L'application traite un seul dossier evenement a la fois, en 4 etapes. Pendant l'analyse ou la revue, le bouton **Reinitialiser** demande confirmation, arrete l'analyse si necessaire, supprime les resultats et vignettes du job, puis revient au choix du dossier. Le traitement d'export n'est pas interrompu par ce bouton et le dossier source reste toujours intact.
+L'application traite un seul dossier evenement a la fois, en 4 etapes. Pendant l'analyse ou la revue, le bouton **Reinitialiser** demande confirmation, arrete l'analyse si necessaire, supprime les resultats et vignettes du job, puis revient au choix du dossier. Le traitement d'export n'est pas interrompu par ce bouton et le dossier source reste toujours intact. Dans les onglets Flou et Doublons, un maintien d'environ 450 ms sur une vignette ouvre temporairement cette meme vignette en grand ; le relachement la ferme sans telecharger l'original.
+
+L'application traite un seul dossier evenement a la fois, en 4 etapes. Sur l'ecran de selection, un badge **Deja exporte** signale uniquement les dossiers dont un export est termine ; ces dossiers restent selectionnables pour une nouvelle analyse.
 
 L'application traite un seul dossier evenement a la fois, en 4 etapes :
 

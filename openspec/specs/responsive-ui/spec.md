@@ -25,3 +25,29 @@ The system SHALL implement the web UI using vanilla HTML/CSS/JavaScript, without
 #### Scenario: A tab switch or state change occurs
 - **WHEN** the user switches between review tabs or toggles a photo's keep/delete state
 - **THEN** the visual transition is rendered via CSS animation/transition without a full page reload and without loading a JavaScript framework
+
+### Requirement: Neon review visual system
+The system SHALL provide a responsive black/deep-charcoal and neon-red visual theme inspired by Tron/Ares across the workflow shell, stepper, review tabs, photo cards, controls, progress states, and status messages. The theme SHALL preserve readable contrast and stable layouts on desktop and mobile.
+
+#### Scenario: User opens the workflow on desktop
+- **WHEN** the user opens the workflow at a desktop viewport
+- **THEN** the shell and review surfaces use the neon visual system without horizontal overflow or overlapping controls
+
+#### Scenario: User opens the workflow on mobile
+- **WHEN** the user opens a review tab on a narrow touch viewport
+- **THEN** the controls, photo cards, and tabs remain usable, fit within the viewport, and preserve visible focus/active states
+
+#### Scenario: User prefers reduced motion
+- **WHEN** the browser reports `prefers-reduced-motion: reduce`
+- **THEN** decorative and state transitions are reduced or disabled without removing functional feedback
+
+### Requirement: Responsive state emphasis
+The system SHALL keep kept/deletion card treatments and processed-folder badges readable and non-overlapping across desktop and mobile review and folder-selection layouts.
+
+#### Scenario: Review cards fit on mobile
+- **WHEN** the user opens a review grid on a narrow viewport
+- **THEN** the kept and deletion visual treatments do not obscure the thumbnail, checkbox, or state label
+
+#### Scenario: Processed badge fits on mobile
+- **WHEN** a processed folder is displayed on a narrow viewport
+- **THEN** its `Deja exporte` indicator wraps or reflows without overlapping the folder name or selection control

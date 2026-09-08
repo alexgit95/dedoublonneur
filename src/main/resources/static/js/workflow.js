@@ -97,11 +97,21 @@
       const input = document.createElement("input");
       input.type = "radio";
       input.name = "event-folder";
-      input.value = folder;
+      input.value = folder.name;
       input.addEventListener("change", () => {
         startAnalysisButton.disabled = false;
       });
-      label.append(input, document.createTextNode(folder));
+      const name = document.createElement("span");
+      name.className = "folder-option__name";
+      name.textContent = folder.name;
+      label.append(input, name);
+      if (folder.processed) {
+        const badge = document.createElement("span");
+        badge.className = "folder-option__badge";
+        badge.textContent = "Deja exporte";
+        badge.setAttribute("aria-label", "Dossier deja exporte");
+        label.appendChild(badge);
+      }
       eventFolders.appendChild(label);
     });
   }

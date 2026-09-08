@@ -37,4 +37,10 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
     @Transactional(readOnly = true)
     @Query("select j.event.folderName from AnalysisJob j where j.id = :jobId")
     Optional<String> findEventFolderNameByJobId(@Param("jobId") Long jobId);
+
+    @Transactional(readOnly = true)
+    @Query("select new fr.dedoublonneur.domain.CompletedFolderStatus(e.folderName, max(pr.processedAt)) "
+            + "from ProcessingResult pr join pr.job j join j.event e "
+            + "where j.status = fr.dedoublonneur.domain.JobStatus.DONE group by e.folderName")
+    List<CompletedFolderStatus> findCompletedFolderStatuses();
 }

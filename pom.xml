@@ -13,7 +13,7 @@
 
   <groupId>fr.dedoublonneur</groupId>
   <artifactId>dedoublonneur</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <name>dedoublonneur</name>
   <description>Workflow de tri de photos (flou / doublons) avant archivage</description>
 

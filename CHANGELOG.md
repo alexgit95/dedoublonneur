@@ -7,6 +7,8 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Hierarchie visuelle de revue corrigee : les photos conservees sont mises en avant, les photos marquees pour suppression sont attenuees, et l'ecran de selection signale les dossiers deja exportes (`DONE`) sans les desactiver.
+- Theme de revue noir et rouge neon inspire de Tron/Ares, avec apercu plein ecran temporaire des thumbnails par maintien du pointeur/touch dans les onglets Flou et Doublons, sans telechargement de l'original.
 - Bouton de reinitialisation du workflow pendant l'analyse ou la revue : arret cooperatif du runner, suppression des analyses et vignettes du job, purge du cache de doublons et retour au choix du dossier ; l'export reste volontairement non interrompu.
 - Support des photos PNG et detection des quasi-doublons de rafale : le snapshot accepte JPEG/PNG et l'analyse utilise desormais un pHash DCT 64 bits, avec un seuil initial de 90% (distance maximale de 6 bits) ajustable pendant la revue manuelle.
 - **Interface de workflow guidee** (`improve-guided-workflow-ui`) : landing page a la racine, fil d'etapes persistant, ecran unique avec onglets Flou/Doublons, reprise automatique selon le statut du workflow et recapitulatif d'export integre.

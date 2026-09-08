@@ -55,12 +55,18 @@ function testWorkflowStepMapping() {
   assert.strictEqual(DedoublonneurUI.workflowStepForStatus("UNKNOWN"), "folder");
 }
 
+function testThumbnailPreviewConfiguration() {
+  assert.strictEqual(DedoublonneurUI.HOLD_DELAY_MS, 450);
+  assert.strictEqual(DedoublonneurUI.MOVE_CANCEL_DISTANCE, 10);
+}
+
 async function main() {
   await testDebounceDelaysRecomputation();
   testBuildPaginatedUrlRequestsOnlyOnePageAtATime();
   testBuildPaginatedUrlHandlesExistingQueryString();
   testFormatBytes();
   testWorkflowStepMapping();
+  testThumbnailPreviewConfiguration();
   console.log("shared.test.js: all assertions passed");
 }
 

@@ -44,3 +44,21 @@ The system SHALL allow the user to check or uncheck any individual photo within 
 #### Scenario: User overrides the default kept photo
 - **WHEN** the user unchecks the default-kept photo and checks another photo in the same group
 - **THEN** the system reflects the new selection for that group when the folder is later processed
+
+### Requirement: Visual priority for kept duplicate candidates
+The system SHALL visually prioritize photos kept in duplicate groups and visually de-emphasize photos marked for deletion, while preserving grouping, checkbox state, and threshold behavior.
+
+#### Scenario: Duplicate candidate is kept
+- **WHEN** a photo in a duplicate group is unchecked and marked to be kept
+- **THEN** its card receives the primary kept-photo visual treatment
+
+#### Scenario: Duplicate candidate is marked for deletion
+- **WHEN** a photo in a duplicate group is checked for deletion
+- **THEN** its card is visibly secondary but remains inspectable and its deletion label remains available
+
+### Requirement: Duplicate review photo preview
+The system SHALL expose the shared press-and-hold fullscreen thumbnail preview for every photo card in the Doublons review tab without changing group membership, threshold recomputation, or deletion controls.
+
+#### Scenario: User previews a duplicate candidate
+- **WHEN** the user presses and holds a photo card image in a duplicate group
+- **THEN** the system opens that thumbnail in the shared fullscreen preview and preserves the current group review state

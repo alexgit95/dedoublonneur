@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import fr.dedoublonneur.analysis.AnalysisOrchestrator;
 import fr.dedoublonneur.domain.AnalysisJob;
 import fr.dedoublonneur.workflow.EventFolderService;
+import fr.dedoublonneur.workflow.EventFolderListing;
 import fr.dedoublonneur.workflow.WorkflowStateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -38,9 +39,10 @@ public class EventController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Lister les dossiers evenement",
-            description = "Retourne les noms des sous-dossiers presents directement sous le point de montage NAS source.")
-    @ApiResponse(responseCode = "200", description = "Liste des dossiers evenement disponibles")
-    public List<String> listEventFolders() {
+                description = "Retourne les sous-dossiers presents directement sous le point de montage NAS source, "
+                    + "avec un indicateur informatif lorsque leur export est termine.")
+            @ApiResponse(responseCode = "200", description = "Liste des dossiers evenement et de leur etat d'export")
+            public List<EventFolderListing> listEventFolders() {
         return eventFolderService.listAvailableFolders();
     }
 

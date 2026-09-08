@@ -24,6 +24,8 @@ import fr.dedoublonneur.domain.JobStatus;
 import fr.dedoublonneur.domain.PhotoAsset;
 import fr.dedoublonneur.domain.PhotoAssetRepository;
 import fr.dedoublonneur.analysis.ThumbnailService;
+import fr.dedoublonneur.domain.ProcessingResult;
+import fr.dedoublonneur.domain.ProcessingResultRepository;
 
 /**
  * Couvre le verrou "un seul workflow actif a la fois" et les transitions d'etat
@@ -52,8 +54,12 @@ class WorkflowStateServiceTest {
     @Autowired
     private ThumbnailService thumbnailService;
 
+    @Autowired
+    private ProcessingResultRepository processingResultRepository;
+
     @AfterEach
     void cleanUp() {
+        processingResultRepository.deleteAll();
         photoAssetRepository.deleteAll();
         jobRepository.deleteAll();
         eventRepository.deleteAll();
@@ -194,5 +200,21 @@ class WorkflowStateServiceTest {
         assertThatThrownBy(() -> workflowStateService.cancelActiveWorkflow())
                 .isInstanceOf(WorkflowResetNotAllowedException.class);
         assertThat(jobRepository.findById(job.getId()).orElseThrow().getStatus()).isEqualTo(JobStatus.PROCESSING);
+    }
+
+    @Test
+    void completedExportIsReportedButReviewIsNot() {
+        AnalysisJob exported = workflowStateService.startAnalysis("exporte");
+        exported.setStatus(JobStatus.DONE);
+        jobRepository.saveAndFlush(exported);
+        processingResultRepository.save(new ProcessingResult(exported, 1, 1, 0, 100L, 50L, "sortie"));
+
+        AnalysisJob inReview = workflowStateService.startAnalysis("en-revue");
+        inReview.setStatus(JobStatus.READY_FOR_REVIEW);
+        jobRepository.saveAndFlush(inReview);
+
+        assertThat(jobRepository.findCompletedFolderStatuses())
+                .extracting(status -> status.folderName())
+                .containsExactly("exporte");
     }
 }
