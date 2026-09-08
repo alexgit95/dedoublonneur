@@ -8,7 +8,7 @@ Ouvrez `http://localhost:8686/` (ou l'URL de l'instance distante) pour acceder a
 
 L'application reprend automatiquement le workflow courant a partir de `GET /api/workflow/status`. Une analyse en cours affiche sa progression, un dossier pret ouvre la revue, et un traitement termine affiche son recapitulatif. Les anciennes URLs `/flou.html?jobId=...`, `/doublons.html?jobId=...` et `/traiter.html?jobId=...` restent disponibles comme acces directs de compatibilite.
 
-En profil local, SQLite est configure avec un delai d'attente des verrous de 30 secondes et le mode de journalisation par defaut, plus compatible avec les transactions Hibernate utilisees pour generer les identifiants. Le demarrage d'une analyse est egalement serialize dans l'application afin qu'un double clic ou deux onglets ne tentent pas de creer deux workflows simultanement.
+En profil local, SQLite est configure avec un delai d'attente des verrous de 30 secondes et le mode de journalisation par defaut, plus compatible avec les transactions Hibernate utilisees pour generer les identifiants. Le seuil de similarite par defaut est configurable via `APP_DEFAULT_SIMILARITY_THRESHOLD` (90 si absent, valeur entiere de 0 a 100) ; chaque job conserve sa valeur initiale, puis l'utilisateur peut l'ajuster dans la revue. Le demarrage d'une analyse est egalement serialize dans l'application afin qu'un double clic ou deux onglets ne tentent pas de creer deux workflows simultanement.
 
 ## Fonctionnement (workflow)
 
@@ -18,7 +18,7 @@ L'application traite un seul dossier evenement a la fois, en 4 etapes. Sur l'ecr
 
 L'application traite un seul dossier evenement a la fois, en 4 etapes :
 
-1. **Selection du dossier evenement** — `GET /api/events` liste les sous-dossiers presents sous le point de montage NAS source. `POST /api/events/{folderName}/analysis` demarre l'analyse. Un seul workflow (analyse, revue ou traitement) peut etre actif a la fois ; une tentative concurrente est refusee (HTTP 409). `GET /api/workflow/status` renvoie l'etat courant (`IDLE`, `ANALYZING`, `READY_FOR_REVIEW`, `PROCESSING`, `DONE`) et `POST /api/workflow/cancel` permet de reinitialiser un workflow bloque.
+1. **Selection du dossier evenement** — `GET /api/events` liste les sous-dossiers presents sous le point de montage NAS source. `POST /api/events/{folderName}/analysis` demarre l'analyse. Un seul workflow (analyse, revue ou traitement) peut etre actif a la fois ; une tentative concurrente est refusee (HTTP 409). Apres un export reussi, le workflow actif revient a `IDLE` tandis que le dernier recapitulatif reste disponible ; un job `DONE` ne bloque pas la reanalyse du meme dossier. `GET /api/workflow/status` expose separement l'etat actif et le dernier export termine.
 2. **Analyse en tache de fond** — pour chaque photo JPEG ou PNG du dossier (instantane fige au demarrage, les fichiers ajoutes ensuite sont ignores) : calcul d'un score de nettete (variance du Laplacien) et d'un pHash DCT 64 bits, avec une vignette generee et mise en cache. Le pHash detecte les copies et les quasi-doublons de rafale, y compris les photos voisines legerement differentes. La progression est consultable via `GET /api/jobs/{id}` et peut reprendre manuellement (`POST /api/jobs/{id}/resume`) sans recalculer les photos deja traitees.
 3. **Revue manuelle** — deux onglets IHM regroupes dans l'ecran racine (`/`) :
    - **Flou** (`GET /api/jobs/{id}/blurred`, pagine) : les photos sous le seuil de nettete sont pre-cochees pour suppression.

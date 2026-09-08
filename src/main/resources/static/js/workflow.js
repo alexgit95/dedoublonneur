@@ -10,6 +10,11 @@
     reviewInitialized: false,
     processingInitialized: false,
     processingController: null,
+    processingJobId: null,
+    defaultSimilarityThreshold: 90,
+    lastCompletedJobId: null,
+    lastCompletedFolderName: null,
+    lastCompletedAt: null,
     pollTimer: null,
   };
 
@@ -27,7 +32,7 @@
   const resetButtons = [...document.querySelectorAll("[data-workflow-reset]")];
 
   function accessibleSteps() {
-    if (state.status === "IDLE") return ["folder"];
+    if (state.status === "IDLE") return state.lastCompletedJobId ? ["folder", "export"] : ["folder"];
     if (state.status === "ANALYZING") return ["folder", "analysis"];
     if (state.status === "READY_FOR_REVIEW") return ["folder", "analysis", "review", "export"];
     return STEP_ORDER;
@@ -154,7 +159,11 @@
   function initializeReview() {
     if (state.reviewInitialized || !state.jobId) return;
     DedoublonneurPanels.initBlurReview(state.jobId, document.querySelector('[data-review-panel="blur"]'));
-    DedoublonneurPanels.initDuplicateReview(state.jobId, document.querySelector('[data-review-panel="duplicate"]'));
+    DedoublonneurPanels.initDuplicateReview(
+      state.jobId,
+      document.querySelector('[data-review-panel="duplicate"]'),
+      state.defaultSimilarityThreshold,
+    );
     state.reviewInitialized = true;
   }
 
@@ -165,6 +174,7 @@
       document.querySelector('[data-panel="export"]'),
     );
     state.processingInitialized = true;
+    state.processingJobId = state.jobId;
   }
 
   function selectReviewTab(tabName) {
@@ -182,13 +192,27 @@
     state.status = status.status;
     state.jobId = status.jobId;
     state.folderName = status.eventFolderName;
+    state.defaultSimilarityThreshold = status.defaultSimilarityThreshold ?? state.defaultSimilarityThreshold;
+    state.lastCompletedJobId = status.lastCompletedJobId;
+    state.lastCompletedFolderName = status.lastCompletedFolderName;
+    state.lastCompletedAt = status.lastCompletedAt;
     updateContext();
     updateUrl();
     renderStepper();
 
     if (state.status === "IDLE") {
-      showStep("folder");
-      setWorkflowMessage("Choisissez un dossier pour commencer.");
+      if (state.lastCompletedJobId) {
+        initializeProcessingForJob(state.lastCompletedJobId);
+        showStep("export");
+        document.getElementById("process-form").hidden = true;
+        document.getElementById("new-workflow").hidden = false;
+        document.getElementById("status-message").textContent = "Traitement termine.";
+        await state.processingController.loadRecap();
+        setWorkflowMessage("Votre dossier trie est pret.");
+      } else {
+        showStep("folder");
+        setWorkflowMessage("Choisissez un dossier pour commencer.");
+      }
       await loadFolders();
     } else if (state.status === "ANALYZING") {
       showStep("analysis");
@@ -207,15 +231,18 @@
       setWorkflowMessage("Export en cours...");
       schedulePoll(syncStatus);
     } else if (state.status === "DONE") {
-      initializeProcessing();
-      showStep("export");
-      document.getElementById("process-form").hidden = true;
-      document.getElementById("new-workflow").hidden = false;
-      document.getElementById("status-message").textContent = "Traitement termine.";
-      await state.processingController.loadRecap();
-      setWorkflowMessage("Votre dossier trie est pret.");
       clearPoll();
     }
+  }
+
+  function initializeProcessingForJob(jobId) {
+    if (state.processingInitialized && state.processingJobId === jobId) return;
+    state.processingController = DedoublonneurPanels.initFolderProcessing(
+      jobId,
+      document.querySelector('[data-panel="export"]'),
+    );
+    state.processingInitialized = true;
+    state.processingJobId = jobId;
   }
 
   function clearPoll() {
@@ -261,9 +288,13 @@
     state.status = "IDLE";
     state.jobId = null;
     state.folderName = null;
+    state.lastCompletedJobId = null;
+    state.lastCompletedFolderName = null;
+    state.lastCompletedAt = null;
     state.reviewInitialized = false;
     state.processingInitialized = false;
     state.processingController = null;
+    state.processingJobId = null;
     resetButtons.forEach((button) => { button.disabled = false; });
     updateUrl();
     await syncStatus();
@@ -291,6 +322,7 @@
     state.reviewInitialized = false;
     state.processingInitialized = false;
     state.processingController = null;
+    state.processingJobId = null;
     document.getElementById("process-form").hidden = false;
     document.getElementById("new-workflow").hidden = true;
     document.getElementById("recap").hidden = true;
@@ -309,11 +341,7 @@
   });
 
   window.addEventListener("workflow-processing-done", () => {
-    state.status = "DONE";
-    renderStepper();
-    document.getElementById("process-form").hidden = true;
-    document.getElementById("new-workflow").hidden = false;
-    setWorkflowMessage("Votre dossier trie est pret.");
+    syncStatus().catch((error) => setWorkflowMessage(error.message));
   });
 
   updateContext();

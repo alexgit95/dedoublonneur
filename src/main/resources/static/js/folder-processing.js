@@ -26,7 +26,7 @@ function initFolderProcessing(jobId, root = document) {
     while (true) {
       const response = await fetch(`/api/workflow/status`);
       const status = await response.json();
-      if (status.status === "DONE") {
+      if (status.status === "DONE" || status.lastCompletedJobId === Number(jobId)) {
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));

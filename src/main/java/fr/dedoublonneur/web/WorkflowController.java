@@ -26,7 +26,8 @@ public class WorkflowController {
 
     @GetMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Consulter le statut du workflow",
-            description = "Retourne IDLE si aucun workflow n'est actif, sinon le statut du job en cours.")
+            description = "Retourne l'etat actif et, separement, le dernier export termine pour le recapitulatif. "
+                + "Un export reussi remet l'etat actif a IDLE et ne bloque pas une nouvelle analyse.")
     @ApiResponse(responseCode = "200", description = "Statut courant du workflow")
     public WorkflowStatus status() {
         return workflowStateService.currentStatus();

@@ -114,6 +114,22 @@ class FolderProcessingServiceTest {
     }
 
     @Test
+    void failedAsyncProcessingCancelsTheJob(@TempDir Path root) {
+        AnalysisJob job = createReadyJob(root.resolve("source"));
+        photoAssetRepository.save(new PhotoAsset(job, "missing.jpg", 12L, 100.0, 1L, false));
+
+        folderProcessingService.startProcessing(job.getId(), "failed-" + System.nanoTime());
+
+        long deadline = System.nanoTime() + 5_000_000_000L;
+        while (jobRepository.findById(job.getId()).orElseThrow().getStatus() != JobStatus.CANCELLED
+            && System.nanoTime() < deadline) {
+            Thread.yield();
+        }
+        assertThat(jobRepository.findById(job.getId()).orElseThrow().getStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(processingResultRepository.findByJobId(job.getId())).isEmpty();
+    }
+
+    @Test
     void copiesKeptPhotoPreservingMetadataAndLeavesSourceUntouched(@TempDir Path root) throws IOException {
         Path sourceDir = Files.createDirectories(root.resolve("source"));
         Path photo = sourceDir.resolve("IMG_1.jpg");

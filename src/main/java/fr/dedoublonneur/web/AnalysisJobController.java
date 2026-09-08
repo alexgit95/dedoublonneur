@@ -38,7 +38,8 @@ public class AnalysisJobController {
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Consulter la progression d'un job d'analyse",
-            description = "Retourne le statut du job ainsi que le nombre de photos analysees sur le total du snapshot.")
+            description = "Retourne le statut du job, son seuil de similarite par defaut ainsi que le nombre de "
+                + "photos analysees sur le total du snapshot.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Progression du job"),
             @ApiResponse(responseCode = "404", description = "Job introuvable")
@@ -48,7 +49,8 @@ public class AnalysisJobController {
         String folderName = jobRepository.findEventFolderNameByJobId(id).orElseThrow(() -> new JobNotFoundException(id));
         long analyzed = photoAssetRepository.countByJobId(id);
         return new JobProgressResponse(job.getId(), folderName, job.getStatus().name(),
-                (int) analyzed, job.getSnapshotSize(), photoAnalysisRunner.isRunning(id));
+                (int) analyzed, job.getSnapshotSize(), photoAnalysisRunner.isRunning(id),
+                job.getSimilarityThresholdDefault());
     }
 
     @PostMapping(value = "/{id}/resume", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -14,6 +14,8 @@ import fr.dedoublonneur.domain.AnalysisJobRepository;
 import fr.dedoublonneur.domain.Event;
 import fr.dedoublonneur.domain.EventRepository;
 import fr.dedoublonneur.domain.JobStatus;
+import fr.dedoublonneur.domain.LastCompletedWorkflowStatus;
+import fr.dedoublonneur.domain.LastCompletedWorkflowStatusRepository;
 import fr.dedoublonneur.domain.PhotoAssetRepository;
 import fr.dedoublonneur.analysis.DuplicateClusterService;
 import fr.dedoublonneur.analysis.PhotoAnalysisRunner;
@@ -38,11 +40,13 @@ public class WorkflowStateService {
     private final PhotoAnalysisRunner photoAnalysisRunner;
     private final ThumbnailService thumbnailService;
     private final DuplicateClusterService duplicateClusterService;
+    private final LastCompletedWorkflowStatusRepository lastCompletedRepository;
 
     public WorkflowStateService(AnalysisJobRepository jobRepository, EventRepository eventRepository,
             AppProperties appProperties, PhotoAssetRepository photoAssetRepository,
             PhotoAnalysisRunner photoAnalysisRunner, ThumbnailService thumbnailService,
-            DuplicateClusterService duplicateClusterService) {
+            DuplicateClusterService duplicateClusterService,
+            LastCompletedWorkflowStatusRepository lastCompletedRepository) {
         this.jobRepository = jobRepository;
         this.eventRepository = eventRepository;
         this.appProperties = appProperties;
@@ -50,6 +54,7 @@ public class WorkflowStateService {
         this.photoAnalysisRunner = photoAnalysisRunner;
         this.thumbnailService = thumbnailService;
         this.duplicateClusterService = duplicateClusterService;
+        this.lastCompletedRepository = lastCompletedRepository;
     }
 
     @Transactional(readOnly = true)
@@ -59,10 +64,10 @@ public class WorkflowStateService {
 
     @Transactional(readOnly = true)
     public WorkflowStatus currentStatus() {
+        LastCompletedWorkflowStatus lastCompleted = lastCompletedRepository.findLatest().stream().findFirst().orElse(null);
         return findActiveJob()
-                .map(WorkflowStatus::of)
-                .or(() -> jobRepository.findFirstByStatusOrderByIdDesc(JobStatus.DONE).map(WorkflowStatus::of))
-                .orElseGet(WorkflowStatus::idle);
+            .map(job -> WorkflowStatus.of(job, lastCompleted))
+            .orElseGet(() -> WorkflowStatus.idle(lastCompleted));
     }
 
     /**
@@ -98,7 +103,7 @@ public class WorkflowStateService {
         job.setStatus(JobStatus.CANCELLED);
         job.setFinishedAt(Instant.now());
         jobRepository.save(job);
-        return WorkflowStatus.idle();
+        return currentStatus();
     }
 
     private String resolveFolderPath(String folderName) {

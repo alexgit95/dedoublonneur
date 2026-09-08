@@ -7,6 +7,7 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Seuil de similarite configurable via `APP_DEFAULT_SIMILARITY_THRESHOLD` (fallback 90), conservation de la valeur par job, separation du contexte actif et du dernier recapitulatif apres export, retraitement fiable des jobs `DONE` et annulation des exports en erreur.
 - Hierarchie visuelle de revue corrigee : les photos conservees sont mises en avant, les photos marquees pour suppression sont attenuees, et l'ecran de selection signale les dossiers deja exportes (`DONE`) sans les desactiver.
 - Theme de revue noir et rouge neon inspire de Tron/Ares, avec apercu plein ecran temporaire des thumbnails par maintien du pointeur/touch dans les onglets Flou et Doublons, sans telechargement de l'original.
 - Bouton de reinitialisation du workflow pendant l'analyse ou la revue : arret cooperatif du runner, suppression des analyses et vignettes du job, purge du cache de doublons et retour au choix du dossier ; l'export reste volontairement non interrompu.

@@ -31,7 +31,7 @@ app:
     checkpoint-batch-size: 20
     # 90% = au plus 6 bits differents sur 64 ; calibre sur les fixtures de rafale,
     # avec un seuil ajustable dans l'ecran de revue.
-    default-similarity-threshold: 90
+    default-similarity-threshold: ${APP_DEFAULT_SIMILARITY_THRESHOLD:90}
     # Score de variance du Laplacien en-dessous duquel une photo est consideree floue.
     # Valeur de depart heuristique, a affiner lors des tests reels (cf. design.md).
     blur-threshold: 60.0

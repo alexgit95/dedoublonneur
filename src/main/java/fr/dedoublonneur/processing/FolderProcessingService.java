@@ -83,8 +83,13 @@ public class FolderProcessingService {
     public void processFolderAsync(Long jobId, String sourceFolderPath, String outputFolderPath) {
         try {
             processFolder(jobId, sourceFolderPath, outputFolderPath);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Echec du traitement du job {}", jobId, e);
+            jobRepository.findById(jobId).ifPresent(job -> {
+                job.setStatus(JobStatus.CANCELLED);
+                job.setFinishedAt(Instant.now());
+                jobRepository.save(job);
+            });
         }
     }
 

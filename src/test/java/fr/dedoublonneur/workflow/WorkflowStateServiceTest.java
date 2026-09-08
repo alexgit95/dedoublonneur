@@ -105,12 +105,15 @@ class WorkflowStateServiceTest {
         AnalysisJob job = workflowStateService.startAnalysis("vacances-ete-2026");
         job.setStatus(JobStatus.DONE);
         jobRepository.saveAndFlush(job);
+        processingResultRepository.save(new ProcessingResult(job, 1, 0, 0, 100L, 100L, "sortie"));
 
         WorkflowStatus status = workflowStateService.currentStatus();
 
-        assertThat(status.status()).isEqualTo(JobStatus.DONE.name());
-        assertThat(status.jobId()).isEqualTo(job.getId());
-        assertThat(status.eventFolderName()).isEqualTo("vacances-ete-2026");
+        assertThat(status.status()).isEqualTo(WorkflowStatus.IDLE);
+        assertThat(status.jobId()).isNull();
+        assertThat(status.eventFolderName()).isNull();
+        assertThat(status.lastCompletedJobId()).isEqualTo(job.getId());
+        assertThat(status.lastCompletedFolderName()).isEqualTo("vacances-ete-2026");
     }
 
     @Test
@@ -216,5 +219,17 @@ class WorkflowStateServiceTest {
         assertThat(jobRepository.findCompletedFolderStatuses())
                 .extracting(status -> status.folderName())
                 .containsExactly("exporte");
+    }
+
+    @Test
+    void completedJobDoesNotBlockReanalysisOfTheSameFolder() {
+        AnalysisJob completed = workflowStateService.startAnalysis("vacances-ete-2026");
+        completed.setStatus(JobStatus.DONE);
+        jobRepository.saveAndFlush(completed);
+
+        AnalysisJob restarted = workflowStateService.startAnalysis("vacances-ete-2026");
+
+        assertThat(restarted.getStatus()).isEqualTo(JobStatus.ANALYZING);
+        assertThat(restarted.getId()).isNotEqualTo(completed.getId());
     }
 }

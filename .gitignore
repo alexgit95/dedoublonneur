@@ -7,3 +7,5 @@ target/
 .vscode/
 nas-mount/
 data/
+dedoublonneur-local.db-shm
+dedoublonneur-local.db-wal
