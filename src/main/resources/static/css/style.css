@@ -165,6 +165,47 @@ main,
   transform: translateY(-2px);
 }
 
+.folder-option__meta {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.folder-option__badge,
+.folder-option__saved,
+.folder-option__cleanup {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.folder-option__badge {
+  background: rgba(8, 127, 140, 0.12);
+  color: var(--accent-dark);
+  padding: 0.35rem 0.6rem;
+}
+
+.folder-option__saved {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.folder-option__cleanup {
+  background: #f3e4e4;
+  border: 1px solid #d89a9a;
+  color: #7b2d2d;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.38rem 0.7rem;
+}
+
+.folder-option__cleanup:hover {
+  background: #ecd1d1;
+}
+
 .primary-action,
 .secondary-action {
   border: 0;

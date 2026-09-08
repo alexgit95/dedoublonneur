@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,8 @@ import fr.dedoublonneur.analysis.AnalysisOrchestrator;
 import fr.dedoublonneur.domain.AnalysisJob;
 import fr.dedoublonneur.workflow.EventFolderService;
 import fr.dedoublonneur.workflow.EventFolderListing;
+import fr.dedoublonneur.workflow.ProcessedFolderCleanupResponse;
+import fr.dedoublonneur.workflow.ProcessedFolderCleanupService;
 import fr.dedoublonneur.workflow.WorkflowStateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,12 +32,14 @@ public class EventController {
     private final EventFolderService eventFolderService;
     private final WorkflowStateService workflowStateService;
     private final AnalysisOrchestrator analysisOrchestrator;
+    private final ProcessedFolderCleanupService cleanupService;
 
     public EventController(EventFolderService eventFolderService, WorkflowStateService workflowStateService,
-            AnalysisOrchestrator analysisOrchestrator) {
+            AnalysisOrchestrator analysisOrchestrator, ProcessedFolderCleanupService cleanupService) {
         this.eventFolderService = eventFolderService;
         this.workflowStateService = workflowStateService;
         this.analysisOrchestrator = analysisOrchestrator;
+        this.cleanupService = cleanupService;
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -45,6 +50,19 @@ public class EventController {
             public List<EventFolderListing> listEventFolders() {
         return eventFolderService.listAvailableFolders();
     }
+
+        @DeleteMapping(value = "/{folderName}/cleanup", produces = MediaType.APPLICATION_JSON_VALUE)
+        @Operation(summary = "Nettoyer definitivement un dossier exporte",
+            description = "Supprime le dossier source, tous les exports historiques, les thumbnails et l'historique "
+                + "si tout le nettoyage physique reussit. Les erreurs independantes sont retournees sans arreter "
+                + "les autres suppressions.")
+        @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Nettoyage complet ou partiel detaille"),
+            @ApiResponse(responseCode = "409", description = "Nettoyage refuse ou workflow actif")
+        })
+        public ProcessedFolderCleanupResponse cleanup(@PathVariable String folderName) {
+        return cleanupService.cleanup(folderName);
+        }
 
     @PostMapping(value = "/{folderName}/analysis", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Demarrer l'analyse d'un dossier evenement",

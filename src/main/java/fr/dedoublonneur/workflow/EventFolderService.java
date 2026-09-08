@@ -50,7 +50,8 @@ public class EventFolderService {
                     .map(folderName -> {
                     CompletedFolderStatus completed = completedByFolder.get(folderName);
                     return new EventFolderListing(folderName, completed != null,
-                        completed == null ? null : completed.processedAt());
+                        completed == null ? null : completed.processedAt(),
+                        completed == null ? 0 : Math.max(0, completed.savedBytes()), completed != null);
                     })
                     .toList();
         } catch (IOException e) {

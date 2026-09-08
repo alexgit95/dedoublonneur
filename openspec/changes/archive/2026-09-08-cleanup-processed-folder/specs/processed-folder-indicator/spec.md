@@ -1,8 +1,5 @@
-# processed-folder-indicator Specification
+## MODIFIED Requirements
 
-## Purpose
-Expose completed-export state on the event-folder selection screen.
-## Requirements
 ### Requirement: Completed-export state in folder listing
 The system SHALL expose each available event folder with its name, a boolean `processed` state, an optional completion timestamp, and the latest export's saved bytes. `processed` SHALL be true only when at least one export for that folder completed successfully with workflow status `DONE` and a persisted processing result. The saved-space value SHALL remain visible until complete cleanup removes the history.
 
@@ -21,11 +18,3 @@ The system SHALL expose each available event folder with its name, a boolean `pr
 #### Scenario: Cleanup succeeds
 - **WHEN** cleanup removes the event and all associated history
 - **THEN** the folder, processed indicator, and saved-space value are absent from the listing
-
-### Requirement: Processed folder remains selectable
-The system SHALL display the completed-export state as informational and SHALL continue allowing the user to select and analyze a processed folder.
-
-#### Scenario: User selects an already exported folder
-- **WHEN** the user selects a folder marked `processed: true`
-- **THEN** the folder remains selectable and the user can start a new analysis workflow
-

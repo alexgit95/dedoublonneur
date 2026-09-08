@@ -2,9 +2,7 @@
 
 ## Purpose
 TBD - created by archiving change add-photo-culling-workflow. Update Purpose after archive.
-
 ## Requirements
-
 ### Requirement: Event folder listing and selection
 The system SHALL list the sub-folders (events) available under the configured NAS source mount, SHALL allow the user to select exactly one event folder to start an analysis, and SHALL expose this flow from the root landing page.
 
@@ -83,3 +81,15 @@ The system SHALL display an informational `Deja exporte` indicator for event fol
 #### Scenario: User chooses an exported folder again
 - **WHEN** the user selects an available folder marked `Deja exporte`
 - **THEN** the selection remains valid and the user can start a new analysis
+
+### Requirement: Cleanup and saved-space information on processed folder tiles
+The system SHALL expose the latest successful export's saved bytes for a processed folder and SHALL expose cleanup availability while its processed history remains.
+
+#### Scenario: Processed folder has a latest export
+- **WHEN** an available event has a completed export
+- **THEN** the folder listing includes the saved bytes from the latest export and indicates that cleanup is available
+
+#### Scenario: Processed folder is completely cleaned
+- **WHEN** cleanup deletes the source, all outputs, thumbnails, and database history successfully
+- **THEN** the folder no longer appears in the available-folder listing
+

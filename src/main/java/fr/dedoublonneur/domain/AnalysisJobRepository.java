@@ -34,13 +34,17 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
     Optional<String> findEventFolderPathByJobId(@Param("jobId") Long jobId);
 
     /** Idem pour le nom de dossier (affichage IHM), sans charger l'association event. */
-    @Transactional(readOnly = true)
     @Query("select j.event.folderName from AnalysisJob j where j.id = :jobId")
     Optional<String> findEventFolderNameByJobId(@Param("jobId") Long jobId);
 
     @Transactional(readOnly = true)
-    @Query("select new fr.dedoublonneur.domain.CompletedFolderStatus(e.folderName, max(pr.processedAt)) "
+    @Query("select new fr.dedoublonneur.domain.CompletedFolderStatus(e.folderName, max(pr.processedAt), "
+            + "max(pr.spaceBeforeBytes - pr.spaceAfterBytes)) "
             + "from ProcessingResult pr join pr.job j join j.event e "
             + "where j.status = fr.dedoublonneur.domain.JobStatus.DONE group by e.folderName")
     List<CompletedFolderStatus> findCompletedFolderStatuses();
+
+    @Transactional(readOnly = true)
+    @Query("select j from AnalysisJob j join fetch j.event e where e.folderName = :folderName")
+    List<AnalysisJob> findByEventFolderName(@Param("folderName") String folderName);
 }

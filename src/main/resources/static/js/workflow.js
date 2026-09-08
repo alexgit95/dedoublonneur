@@ -89,6 +89,33 @@
     renderStepper();
   }
 
+  async function cleanupFolder(folderName) {
+    const confirmed = window.confirm(
+      `Nettoyer definitivement le dossier ${folderName} ? Cette action supprime le dossier source, les exports historiques, les vignettes et l'historique associe.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/events/${encodeURIComponent(folderName)}/cleanup`, { method: "DELETE" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.message || "Le nettoyage a ete refuse.");
+      }
+      if (payload.complete) {
+        setWorkflowMessage(`Nettoyage termine pour ${folderName}.`);
+      } else if (payload.failures?.length) {
+        const failed = payload.failures.map((failure) => failure.path).join(", ");
+        setWorkflowMessage(`Nettoyage partiel pour ${folderName} : ${failed}`);
+      } else {
+        setWorkflowMessage(`Nettoyage du dossier ${folderName} termine avec des erreurs non specifiees.`);
+      }
+      await loadFolders();
+      await syncStatus();
+    } catch (error) {
+      setWorkflowMessage(error.message || "Impossible de nettoyer ce dossier.");
+    }
+  }
+
   function renderFolders(folders) {
     eventFolders.innerHTML = "";
     if (folders.length === 0) {
@@ -111,11 +138,29 @@
       name.textContent = folder.name;
       label.append(input, name);
       if (folder.processed) {
+        const meta = document.createElement("div");
+        meta.className = "folder-option__meta";
         const badge = document.createElement("span");
         badge.className = "folder-option__badge";
         badge.textContent = "Deja exporte";
         badge.setAttribute("aria-label", "Dossier deja exporte");
-        label.appendChild(badge);
+        const saved = document.createElement("span");
+        saved.className = "folder-option__saved";
+        saved.textContent = `Espace gagne : ${DedoublonneurUI.formatBytes(folder.savedBytes ?? 0)}`;
+        meta.append(badge, saved);
+        label.appendChild(meta);
+        if (folder.cleanupAvailable) {
+          const cleanupButton = document.createElement("button");
+          cleanupButton.type = "button";
+          cleanupButton.className = "folder-option__cleanup";
+          cleanupButton.textContent = "Nettoyer";
+          cleanupButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            cleanupFolder(folder.name).catch((error) => setWorkflowMessage(error.message));
+          });
+          meta.appendChild(cleanupButton);
+        }
       }
       eventFolders.appendChild(label);
     });

@@ -7,6 +7,7 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Nettoyage definitif des dossiers traites : bouton **Nettoyer** sur les dossiers deja exportes, suppression du dossier source, des sorties historiques, des caches de vignettes et de l'historique associe, avec retour d'erreurs partielles et conservation de la base de donnees si un chemin ne peut pas etre supprime.
 - Previsualisation sans copie avant export (photos conservees/supprimees, videos, taille conservee et economie estimee) et barre de progression determinee pendant le traitement avec compteur d'elements et octets copies.
 - Seuil de similarite configurable via `APP_DEFAULT_SIMILARITY_THRESHOLD` (fallback 90), conservation de la valeur par job, separation du contexte actif et du dernier recapitulatif apres export, retraitement fiable des jobs `DONE` et annulation des exports en erreur.
 - Hierarchie visuelle de revue corrigee : les photos conservees sont mises en avant, les photos marquees pour suppression sont attenuees, et l'ecran de selection signale les dossiers deja exportes (`DONE`) sans les desactiver.

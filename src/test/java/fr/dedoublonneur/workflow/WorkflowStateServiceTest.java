@@ -17,13 +17,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import fr.dedoublonneur.analysis.ThumbnailService;
+import fr.dedoublonneur.config.AppProperties;
 import fr.dedoublonneur.domain.AnalysisJob;
 import fr.dedoublonneur.domain.AnalysisJobRepository;
+import fr.dedoublonneur.domain.Event;
 import fr.dedoublonneur.domain.EventRepository;
 import fr.dedoublonneur.domain.JobStatus;
 import fr.dedoublonneur.domain.PhotoAsset;
 import fr.dedoublonneur.domain.PhotoAssetRepository;
-import fr.dedoublonneur.analysis.ThumbnailService;
 import fr.dedoublonneur.domain.ProcessingResult;
 import fr.dedoublonneur.domain.ProcessingResultRepository;
 
@@ -231,5 +233,42 @@ class WorkflowStateServiceTest {
 
         assertThat(restarted.getStatus()).isEqualTo(JobStatus.ANALYZING);
         assertThat(restarted.getId()).isNotEqualTo(completed.getId());
+    }
+
+    @Test
+    void cleanupDeletesEventHistoryWhenEveryPathCanBeRemoved() throws Exception {
+        Path sourceRoot = Files.createTempDirectory("dedoublonneur-source");
+        Path outputRoot = Files.createTempDirectory("dedoublonneur-output");
+        Path eventFolder = sourceRoot.resolve("vacances-ete-2026");
+        Path outputFolder = outputRoot.resolve("vacances-ete-2026-triees");
+        Files.createDirectories(eventFolder);
+        Files.writeString(eventFolder.resolve("photo.jpg"), "photo");
+        Files.createDirectories(outputFolder);
+        Files.writeString(outputFolder.resolve("keep.jpg"), "photo");
+
+        Event event = eventRepository.save(new Event("vacances-ete-2026", eventFolder.toString()));
+        AnalysisJob job = jobRepository.save(new AnalysisJob(event, 1, 90));
+        job.setStatus(JobStatus.DONE);
+        jobRepository.saveAndFlush(job);
+        processingResultRepository.save(new ProcessingResult(job, 1, 0, 0, 12L, 4L, outputFolder.toString()));
+
+        ProcessedFolderCleanupService cleanupService = new ProcessedFolderCleanupService(
+            jobRepository,
+            eventRepository,
+            photoAssetRepository,
+            processingResultRepository,
+            thumbnailService,
+            workflowStateService,
+            new AppProperties(new AppProperties.Nas(sourceRoot.toString(), outputRoot.toString()),
+                new AppProperties.Analysis(20, 90, 60.0)));
+
+        ProcessedFolderCleanupResponse response = cleanupService.cleanup("vacances-ete-2026");
+
+        assertThat(response.complete()).isTrue();
+        assertThat(response.failures()).isEmpty();
+        assertThat(Files.exists(eventFolder)).isFalse();
+        assertThat(Files.exists(outputFolder)).isFalse();
+        assertThat(eventRepository.findByFolderName("vacances-ete-2026")).isEmpty();
+        assertThat(jobRepository.findById(job.getId())).isEmpty();
     }
 }
