@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.ActiveProfiles;
 
 import fr.dedoublonneur.analysis.ThumbnailService;
@@ -40,6 +42,13 @@ import fr.dedoublonneur.domain.ProcessingResultRepository;
 @ActiveProfiles("local")
 class FolderProcessingServiceTest {
 
+    private static final Path TEST_OUTPUT_ROOT = createTestOutputRoot();
+
+    @DynamicPropertySource
+    static void overrideNasOutputPath(DynamicPropertyRegistry registry) {
+        registry.add("app.nas.output-path", TEST_OUTPUT_ROOT::toString);
+    }
+
     @Autowired
     private FolderProcessingService folderProcessingService;
 
@@ -60,6 +69,14 @@ class FolderProcessingServiceTest {
 
     @Autowired
     private fr.dedoublonneur.config.AppProperties appProperties;
+
+    private static Path createTestOutputRoot() {
+        try {
+            return Files.createTempDirectory("dedoublonneur-output-");
+        } catch (IOException exception) {
+            throw new ExceptionInInitializerError(exception);
+        }
+    }
 
     @AfterEach
     void cleanUp() {
