@@ -6,6 +6,9 @@ Le format est base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Ajout de la configuration du plugin `jacoco-maven-plugin` (0.8.13) dans `pom.xml`, absent jusqu'ici : le job GitHub Actions `test-and-coverage` echouait a uploader l'artefact `jacoco-report` car `target/site/jacoco/` n'etait jamais genere par `mvn test`. Le rapport HTML/XML/CSV de couverture est desormais produit automatiquement en phase `test`.
+
 ### Added
 - Nettoyage definitif des dossiers traites : bouton **Nettoyer** sur les dossiers deja exportes, suppression du dossier source, des sorties historiques, des caches de vignettes et de l'historique associe, avec retour d'erreurs partielles et conservation de la base de donnees si un chemin ne peut pas etre supprime.
 - Previsualisation sans copie avant export (photos conservees/supprimees, videos, taille conservee et economie estimee) et barre de progression determinee pendant le traitement avec compteur d'elements et octets copies.
